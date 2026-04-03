@@ -5,11 +5,19 @@ Fixture scopes:
     - ``db``: function-scoped — each test gets a fresh transaction that is
       rolled back automatically (zero leftover data).
     - ``client``: function-scoped — ASGI test client with DB override.
+
+Notes:
+    ``StaticPool`` is used so that every SQLAlchemy connection reuses the same
+    underlying SQLite connection.  Without it, ``sqlite+aiosqlite:///:memory:``
+    would create a brand-new (empty) database for each connection, meaning
+    tables created in the ``tables`` fixture would be invisible to ``db``
+    sessions opened afterwards.
 """
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from app.domain.entities.base import Base
 from app.infrastructure.database.session import get_db
@@ -18,13 +26,20 @@ from app.main import app
 # ---------------------------------------------------------------------------
 # Engine (session-scoped — one in-memory DB for the whole test run)
 # ---------------------------------------------------------------------------
+# StaticPool forces every create_engine() call to reuse the same underlying
+# connection, so tables created in `tables` are visible in every `db` session.
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
 @pytest.fixture(scope="session")
 def engine():
     """Create a single async engine shared across the entire test session."""
-    return create_async_engine(TEST_DATABASE_URL, echo=False)
+    return create_async_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False,
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
