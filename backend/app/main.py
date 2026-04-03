@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
+from app.api.deps import DbSession
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
@@ -54,11 +56,18 @@ def create_app() -> FastAPI:
     application.include_router(api_router, prefix="/api/v1")
 
     @application.get("/health")
-    async def health_check():
+    async def health_check(db: DbSession):
+        """Health check — includes a lightweight DB ping."""
+        db_ok = True
+        try:
+            await db.execute(text("SELECT 1"))
+        except Exception:
+            db_ok = False
         return {
-            "status": "ok",
+            "status": "ok" if db_ok else "degraded",
             "version": settings.app_version,
             "environment": settings.environment,
+            "database": "connected" if db_ok else "unreachable",
         }
 
     return application

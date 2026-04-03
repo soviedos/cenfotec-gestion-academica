@@ -18,6 +18,8 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/evaluaciones_docentes"
     )
     db_echo: bool = False
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

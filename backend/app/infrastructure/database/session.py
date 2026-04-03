@@ -1,4 +1,12 @@
-"""Async database engine and session factory."""
+"""Async database engine and session factory.
+
+Connection lifecycle:
+    1. Engine is created once at import time (module-level singleton).
+    2. ``get_db()`` yields a session per request; commits on success,
+       rolls back on exception, and always closes.
+    3. Pool settings are tuned for a small-to-medium workload.
+       Adjust ``pool_size`` / ``max_overflow`` via env vars for production.
+"""
 
 from collections.abc import AsyncGenerator
 
@@ -10,8 +18,8 @@ engine = create_async_engine(
     settings.database_url,
     echo=settings.db_echo,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
 )
 
 async_session_factory = async_sessionmaker(
@@ -22,6 +30,11 @@ async_session_factory = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency: yields an async database session."""
+    """Yield a transactional async session; commit or rollback automatically."""
     async with async_session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

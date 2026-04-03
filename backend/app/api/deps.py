@@ -4,14 +4,13 @@ Centralizes all shared dependencies (DB sessions, services, etc.)
 to keep route handlers thin and testable.
 """
 
-from collections.abc import AsyncGenerator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.database import async_session_factory
+from app.infrastructure.database.session import get_db
 
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Yield an async database session, auto-closed after request."""
-    async with async_session_factory() as session:
-        yield session
+# Typed annotation for route-handler signatures:
+#   async def my_route(db: DbSession): ...
+DbSession = Annotated[AsyncSession, Depends(get_db)]
