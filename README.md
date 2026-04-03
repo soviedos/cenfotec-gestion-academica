@@ -152,4 +152,4 @@ chore(infra): update PostgreSQL version in compose
 
 ## Licencia
 
-Este proyecto es de uso interno institucional. Ver [LICENSE](LICENSE) para más detalles.
+Este proyecto se distribuye bajo la licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
