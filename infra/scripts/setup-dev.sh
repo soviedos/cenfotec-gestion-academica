@@ -3,6 +3,14 @@ set -euo pipefail
 
 echo "=== Configuración de entorno de desarrollo ==="
 
+# Root .env (Docker Compose)
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "✓ .env creado"
+else
+  echo "· .env ya existe"
+fi
+
 # Backend
 if [ ! -f backend/.env ]; then
   cp backend/.env.example backend/.env
@@ -20,5 +28,9 @@ else
 fi
 
 echo ""
-echo "=== Levantando servicios ==="
-make dev
+echo "=== Entorno listo ==="
+echo ""
+echo "Opciones:"
+echo "  make infra    → Solo infra (postgres, redis, minio) para dev local"
+echo "  make dev      → Todo (infra + backend + frontend)"
+echo "  make dev-worker → Todo + Celery worker"

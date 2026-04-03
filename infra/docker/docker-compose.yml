@@ -1,33 +1,41 @@
 services:
   # ============================
-  # Base de datos
+  # PostgreSQL + pgvector
   # ============================
   postgres:
     image: pgvector/pgvector:pg16
     container_name: eval-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: evaluaciones_docentes
+      POSTGRES_DB: ${POSTGRES_DB:-evaluaciones_docentes}
       POSTGRES_USER: ${POSTGRES_USER:-eval_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eval_pass_dev}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eval_user} -d evaluaciones_docentes"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-eval_user} -d ${POSTGRES_DB:-evaluaciones_docentes}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
 
   # ============================
-  # Redis (broker para Celery)
+  # Redis (cache / broker Celery)
   # ============================
   redis:
     image: redis:7-alpine
     container_name: eval-redis
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,18 +43,19 @@ services:
       retries: 5
 
   # ============================
-  # MinIO (almacenamiento de PDFs)
+  # MinIO (S3-compatible storage)
   # ============================
   minio:
     image: minio/minio:latest
     container_name: eval-minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_pass_dev}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -62,17 +71,23 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile
+      target: production
     container_name: eval-backend
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-eval_user}:${POSTGRES_PASSWORD:-eval_pass_dev}@postgres:5432/evaluaciones_docentes
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-eval_user}:${POSTGRES_PASSWORD:-eval_pass_dev}@postgres:5432/${POSTGRES_DB:-evaluaciones_docentes}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minio_admin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio_pass_dev}
-      MINIO_BUCKET: evaluaciones
+      MINIO_BUCKET: ${MINIO_BUCKET:-evaluaciones}
+      MINIO_SECURE: "false"
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,22 +97,27 @@ services:
         condition: service_healthy
 
   # ============================
-  # Celery Worker
+  # Celery Worker (optional profile)
   # ============================
   celery-worker:
+    profiles: ["worker"]
     build:
       context: ../../backend
       dockerfile: Dockerfile
+      target: production
     container_name: eval-celery-worker
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-eval_user}:${POSTGRES_PASSWORD:-eval_pass_dev}@postgres:5432/evaluaciones_docentes
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-eval_user}:${POSTGRES_PASSWORD:-eval_pass_dev}@postgres:5432/${POSTGRES_DB:-evaluaciones_docentes}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minio_admin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio_pass_dev}
-      MINIO_BUCKET: evaluaciones
+      MINIO_BUCKET: ${MINIO_BUCKET:-evaluaciones}
+      MINIO_SECURE: "false"
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,14 +131,17 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
+      target: production
     container_name: eval-frontend
+    restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  redis_data:
   minio_data:

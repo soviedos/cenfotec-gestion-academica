@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 WORKDIR /app
 
@@ -9,9 +9,11 @@ COPY . .
 
 # ---- Development ----
 FROM base AS development
-CMD ["npm", "run", "dev"]
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
 
 # ---- Production ----
 FROM base AS production
 RUN npm run build
+EXPOSE 3000
 CMD ["npm", "start"]
