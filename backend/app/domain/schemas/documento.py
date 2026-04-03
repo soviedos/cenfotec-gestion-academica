@@ -25,5 +25,16 @@ class DocumentoRead(TimestampSchema):
     error_detalle: str | None
 
 
+class DocumentoUploadResponse(TimestampSchema):
+    id: uuid.UUID
+    nombre_archivo: str
+    hash_sha256: str
+    estado: DocumentoEstado
+    tamano_bytes: int | None
+
+
 class DocumentoList(PaginatedItems[DocumentoRead]):
+    pass
+    pass
+    pass
     pass

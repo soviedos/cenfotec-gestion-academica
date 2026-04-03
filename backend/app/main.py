@@ -9,7 +9,7 @@ from app.api.deps import DbSession
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
-from app.domain.exceptions import DomainError, NotFoundError
+from app.domain.exceptions import DomainError, DuplicateError, NotFoundError
 
 logger = get_logger(__name__)
 
@@ -47,6 +47,10 @@ def create_app() -> FastAPI:
     @application.exception_handler(NotFoundError)
     async def not_found_handler(_request: Request, exc: NotFoundError):
         return JSONResponse(status_code=404, content={"detail": exc.detail})
+
+    @application.exception_handler(DuplicateError)
+    async def duplicate_handler(_request: Request, exc: DuplicateError):
+        return JSONResponse(status_code=409, content={"detail": exc.detail})
 
     @application.exception_handler(DomainError)
     async def domain_error_handler(_request: Request, exc: DomainError):

@@ -5,7 +5,12 @@ from app.domain.schemas.common import (
     PaginatedItems,
     PaginatedResponse,
 )
-from app.domain.schemas.documento import DocumentoCreate, DocumentoList, DocumentoRead
+from app.domain.schemas.documento import (
+                                       DocumentoCreate,
+                                       DocumentoList,
+                                       DocumentoRead,
+                                       DocumentoUploadResponse,
+)
 from app.domain.schemas.evaluacion import EvaluacionList, EvaluacionRead
 
 __all__ = [
@@ -13,6 +18,7 @@ __all__ = [
     "DocumentoCreate",
     "DocumentoList",
     "DocumentoRead",
+    "DocumentoUploadResponse",
     "ErrorResponse",
     "EvaluacionList",
     "EvaluacionRead",

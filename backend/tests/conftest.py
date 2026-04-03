@@ -19,9 +19,11 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.api.deps import get_file_storage
 from app.domain.entities.base import Base
 from app.infrastructure.database.session import get_db
 from app.main import app
+from tests.fixtures.fakes import FakeFileStorage
 
 # ---------------------------------------------------------------------------
 # Engine (session-scoped — one in-memory DB for the whole test run)
@@ -73,16 +75,26 @@ async def db(engine):
 
 
 # ---------------------------------------------------------------------------
+# Fake file storage (function-scoped)
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def fake_storage():
+    """Provide an in-memory file storage that captures uploads."""
+    return FakeFileStorage()
+
+
+# ---------------------------------------------------------------------------
 # ASGI test client (function-scoped)
 # ---------------------------------------------------------------------------
 @pytest.fixture
-async def client(db):
-    """HTTP test client with the DB dependency overridden to use the test session."""
+async def client(db, fake_storage):
+    """HTTP test client with DB and storage dependencies overridden."""
 
     async def _override():
         yield db
 
     app.dependency_overrides[get_db] = _override
+    app.dependency_overrides[get_file_storage] = lambda: fake_storage
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
