@@ -24,7 +24,7 @@
 
 | Capa                      | Tecnología              | Versión mínima |
 | ------------------------- | ----------------------- | -------------- |
-| Frontend                  | Next.js + TypeScript    | 14.x           |
+| Frontend                  | Next.js + TypeScript    | 16.x           |
 | Backend                   | FastAPI + Python        | 3.12           |
 | Base de datos             | PostgreSQL + pgvector   | 16             |
 | Cola de tareas            | Redis + Celery          | 7.x / 5.x      |
