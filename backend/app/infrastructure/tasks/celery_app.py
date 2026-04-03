@@ -1,6 +1,8 @@
+"""Celery application for async task processing."""
+
 from celery import Celery
 
-from app.config import settings
+from app.core.config import settings
 
 celery_app = Celery(
     "evaluaciones_docentes",
@@ -19,4 +21,4 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-celery_app.autodiscover_tasks(["app.tasks"])
+celery_app.autodiscover_tasks(["app.infrastructure.tasks"])

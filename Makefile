@@ -86,11 +86,11 @@ lint-front:
 # ============================
 
 migrate:
-	cd backend && python -m alembic -c app/db/migrations/alembic.ini upgrade head
+	cd backend && python -m alembic -c app/infrastructure/database/migrations/alembic.ini upgrade head
 
 migration:
 	@read -p "Nombre de la migración: " name; \
-	cd backend && python -m alembic -c app/db/migrations/alembic.ini revision --autogenerate -m "$$name"
+	cd backend && python -m alembic -c app/infrastructure/database/migrations/alembic.ini revision --autogenerate -m "$$name"
 
 # ============================
 # Limpieza

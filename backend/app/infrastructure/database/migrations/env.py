@@ -5,11 +5,10 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.config import settings
-from app.db.session import Base
-
-# Importar todos los modelos para que Alembic los detecte
-import app.models  # noqa: F401
+# Import all entities so Alembic detects them
+import app.domain.entities  # noqa: F401
+from app.core.config import settings
+from app.domain.entities.base import Base
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

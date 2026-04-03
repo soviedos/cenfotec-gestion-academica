@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import evaluaciones, documentos
+from app.api.v1 import documentos, evaluaciones
 
 api_router = APIRouter()
 
