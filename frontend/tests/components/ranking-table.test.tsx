@@ -36,7 +36,7 @@ describe("RankingTable", () => {
   it("pluralizes 'evaluaciones' correctly", () => {
     render(<RankingTable data={mockData} />);
     expect(screen.getByText("3 evaluaciones")).toBeInTheDocument();
-    expect(screen.getByText("1 evaluacion")).toBeInTheDocument();
+    expect(screen.getByText("1 evaluación")).toBeInTheDocument();
   });
 
   it("renders empty state when no data", () => {

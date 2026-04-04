@@ -69,8 +69,8 @@ export function RankingTable({ data }: RankingTableProps) {
                   {d.docente_nombre}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {d.evaluaciones_count} evaluacion
-                  {d.evaluaciones_count !== 1 ? "es" : ""}
+                  {d.evaluaciones_count} evaluaci
+                  {d.evaluaciones_count !== 1 ? "ones" : "ón"}
                 </p>
               </div>
               <span className="text-sm font-semibold tabular-nums">

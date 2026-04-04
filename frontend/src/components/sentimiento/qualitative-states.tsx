@@ -1,7 +1,5 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-
 export function QualitativeSkeleton() {
   return (
     <div className="space-y-6">

@@ -28,7 +28,7 @@ export function DocumentFilters({
   const [docente, setDocente] = useState("");
   const [periodo, setPeriodo] = useState("");
   const [estado, setEstado] = useState<DocumentoEstado | "">("");
-  const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const hasActiveFilters = search || docente || periodo || estado;
 
