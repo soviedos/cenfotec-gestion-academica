@@ -1,0 +1,258 @@
+"use client";
+
+import {
+  Building2,
+  CalendarDays,
+  Filter,
+  GraduationCap,
+  SlidersHorizontal,
+  User,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TEMA_LABELS, SENTIMENT_CONFIG } from "@/components/sentimiento/badges";
+
+interface QualitativeFilterBarProps {
+  periodo: string | undefined;
+  docente: string | undefined;
+  asignatura: string | undefined;
+  escuela: string | undefined;
+  tipo: string | undefined;
+  tema: string | undefined;
+  sentimiento: string | undefined;
+  periodos: string[];
+  docentes: string[];
+  asignaturas: string[];
+  escuelas: string[];
+  onPeriodoChange: (v: string | undefined) => void;
+  onDocenteChange: (v: string | undefined) => void;
+  onAsignaturaChange: (v: string | undefined) => void;
+  onEscuelaChange: (v: string | undefined) => void;
+  onTipoChange: (v: string | undefined) => void;
+  onTemaChange: (v: string | undefined) => void;
+  onSentimientoChange: (v: string | undefined) => void;
+  onClear: () => void;
+}
+
+const TIPOS = [
+  { value: "fortaleza", label: "Fortaleza" },
+  { value: "mejora", label: "Mejora" },
+  { value: "observacion", label: "Observación" },
+];
+
+const SENTIMIENTOS = Object.entries(SENTIMENT_CONFIG).map(([k, v]) => ({
+  value: k,
+  label: v.label,
+}));
+
+const TEMAS = Object.entries(TEMA_LABELS).map(([k, v]) => ({
+  value: k,
+  label: v,
+}));
+
+const ALL_VALUE = "__all__";
+
+export function QualitativeFilterBar({
+  periodo,
+  docente,
+  asignatura,
+  escuela,
+  tipo,
+  tema,
+  sentimiento,
+  periodos,
+  docentes,
+  asignaturas,
+  escuelas,
+  onPeriodoChange,
+  onDocenteChange,
+  onAsignaturaChange,
+  onEscuelaChange,
+  onTipoChange,
+  onTemaChange,
+  onSentimientoChange,
+  onClear,
+}: QualitativeFilterBarProps) {
+  const hasFilters = periodo || docente || asignatura || escuela || tipo || tema || sentimiento;
+
+  const activeCount = [periodo, docente, asignatura, escuela, tipo, tema, sentimiento].filter(
+    Boolean,
+  ).length;
+
+  return (
+    <div className="rounded-xl border bg-card p-4 shadow-sm">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="size-5 text-primary" />
+          <div>
+            <h3 className="text-sm font-semibold">Filtros de análisis</h3>
+            <p className="text-xs text-muted-foreground">
+              Seleccione los criterios para refinar los resultados
+              {activeCount > 0 && (
+                <span className="ml-1 font-medium text-primary">
+                  · {activeCount} filtro{activeCount > 1 ? "s" : ""} activo{activeCount > 1 ? "s" : ""}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant={hasFilters ? "destructive" : "outline"}
+          size="sm"
+          onClick={onClear}
+          disabled={!hasFilters}
+        >
+          <X className="mr-1 size-3.5" />
+          Limpiar filtros
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {/* Dropdown filters row */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Escuela */}
+          <div className="flex items-center gap-1.5">
+            <Building2 className="size-4 text-muted-foreground" />
+            <Select
+              value={escuela ?? ALL_VALUE}
+              onValueChange={(v) => onEscuelaChange(!v || v === ALL_VALUE ? undefined : v)}
+            >
+              <SelectTrigger size="sm" className="min-w-[240px]">
+                <SelectValue placeholder="Escuela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>Todas las escuelas</SelectItem>
+                {escuelas.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Período */}
+          <div className="flex items-center gap-1.5">
+            <CalendarDays className="size-4 text-muted-foreground" />
+            <Select
+              value={periodo ?? ALL_VALUE}
+              onValueChange={(v) => onPeriodoChange(!v || v === ALL_VALUE ? undefined : v)}
+            >
+              <SelectTrigger size="sm" className="min-w-[160px]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>Todos los períodos</SelectItem>
+                {periodos.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Docente */}
+          <div className="flex items-center gap-1.5">
+            <User className="size-4 text-muted-foreground" />
+            <Select
+              value={docente ?? ALL_VALUE}
+              onValueChange={(v) => onDocenteChange(!v || v === ALL_VALUE ? undefined : v)}
+            >
+              <SelectTrigger size="sm" className="min-w-[363px]">
+                <SelectValue placeholder="Docente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>Todos los docentes</SelectItem>
+                {docentes.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Asignatura */}
+          <div className="flex items-center gap-1.5">
+            <GraduationCap className="size-4 text-muted-foreground" />
+            <Select
+              value={asignatura ?? ALL_VALUE}
+              onValueChange={(v) => onAsignaturaChange(!v || v === ALL_VALUE ? undefined : v)}
+            >
+              <SelectTrigger size="sm" className="min-w-[330px]">
+                <SelectValue placeholder="Asignatura" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>Todas las asignaturas</SelectItem>
+                {asignaturas.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Tipo */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Filter className="size-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Tipo:</span>
+          {TIPOS.map((t) => (
+            <Button
+              key={t.value}
+              variant={tipo === t.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => onTipoChange(tipo === t.value ? undefined : t.value)}
+            >
+              {t.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Sentimiento */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="ml-6 text-sm text-muted-foreground">Sentimiento:</span>
+          {SENTIMIENTOS.map((s) => (
+            <Button
+              key={s.value}
+              variant={sentimiento === s.value ? "default" : "outline"}
+              size="sm"
+              onClick={() =>
+                onSentimientoChange(
+                  sentimiento === s.value ? undefined : s.value,
+                )
+              }
+            >
+              {s.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Tema */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="ml-6 text-sm text-muted-foreground">Tema:</span>
+          {TEMAS.map((t) => (
+            <Button
+              key={t.value}
+              variant={tema === t.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => onTemaChange(tema === t.value ? undefined : t.value)}
+            >
+              {t.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

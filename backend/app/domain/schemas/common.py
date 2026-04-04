@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class BaseSchema(BaseModel):
@@ -18,6 +18,11 @@ class PaginatedResponse(BaseSchema):
     total: int
     page: int
     page_size: int
+
+    @computed_field
+    @property
+    def total_pages(self) -> int:
+        return max(1, -(-self.total // self.page_size))
 
 
 class PaginatedItems[T](PaginatedResponse):

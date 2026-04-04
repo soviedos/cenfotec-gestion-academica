@@ -18,5 +18,6 @@ class Evaluacion(UUIDMixin, TimestampMixin, Base):
     puntaje_general: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     resumen_ia: Mapped[str | None] = mapped_column(Text, nullable=True)
     estado: Mapped[str] = mapped_column(String(20), nullable=False, default="pendiente")
+    datos_completos: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     documento = relationship("Documento", lazy="selectin")

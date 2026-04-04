@@ -11,5 +11,10 @@ class FakeFileStorage:
         self.files[path] = (data, content_type)
         return path
 
+    async def download(self, path: str) -> bytes:
+        if path not in self.files:
+            raise FileNotFoundError(f"File not found: {path}")
+        return self.files[path][0]
+
     async def delete(self, path: str) -> None:
         self.files.pop(path, None)

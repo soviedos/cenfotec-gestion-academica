@@ -15,6 +15,9 @@ class FileStorage:
     async def upload(self, path: str, data: bytes, content_type: str) -> str:
         raise NotImplementedError
 
+    async def download(self, path: str) -> bytes:
+        raise NotImplementedError
+
     async def delete(self, path: str) -> None:
         raise NotImplementedError
 
@@ -36,6 +39,17 @@ class MinioFileStorage(FileStorage):
             content_type,
         )
         return path
+
+    async def download(self, path: str) -> bytes:
+        def _download() -> bytes:
+            response = self.client.get_object(self.bucket, path)
+            try:
+                return response.read()
+            finally:
+                response.close()
+                response.release_conn()
+
+        return await asyncio.to_thread(_download)
 
     async def delete(self, path: str) -> None:
         await asyncio.to_thread(self.client.remove_object, self.bucket, path)

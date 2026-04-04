@@ -3,9 +3,14 @@
 import uuid
 from typing import Literal
 
+from pydantic import Field
+
 from app.domain.schemas.common import BaseSchema, PaginatedItems, TimestampSchema
 
 DocumentoEstado = Literal["subido", "procesando", "procesado", "error"]
+DocumentoSortField = Literal[
+    "created_at", "updated_at", "nombre_archivo", "estado", "tamano_bytes"
+]
 
 
 class DocumentoCreate(BaseSchema):
@@ -35,6 +40,14 @@ class DocumentoUploadResponse(TimestampSchema):
 
 class DocumentoList(PaginatedItems[DocumentoRead]):
     pass
-    pass
-    pass
-    pass
+
+
+class DocumentoFilterParams(BaseSchema):
+    page: int = Field(1, ge=1)
+    page_size: int = Field(20, ge=1, le=100)
+    sort_by: DocumentoSortField = "created_at"
+    sort_order: Literal["asc", "desc"] = "desc"
+    estado: DocumentoEstado | None = None
+    docente: str | None = None
+    periodo: str | None = None
+    nombre_archivo: str | None = None

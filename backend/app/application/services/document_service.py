@@ -1,10 +1,11 @@
-"""Document upload service — application-layer orchestration."""
+"""Document service — application-layer orchestration."""
 
 import hashlib
 import uuid
 
 from app.domain.entities.documento import Documento
 from app.domain.exceptions import DuplicateError, ValidationError
+from app.domain.schemas.documento import DocumentoFilterParams
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.storage.file_storage import FileStorage
 
@@ -14,11 +15,17 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 class DocumentService:
-    """Orchestrates PDF upload: validate → hash → store → persist."""
+    """Orchestrates document operations: upload, list, etc."""
 
-    def __init__(self, repo: DocumentoRepository, storage: FileStorage) -> None:
+    def __init__(self, repo: DocumentoRepository, storage: FileStorage | None = None) -> None:
         self.repo = repo
-        self.storage = storage
+        self._storage = storage
+
+    @property
+    def storage(self) -> FileStorage:
+        if self._storage is None:
+            raise RuntimeError("FileStorage not configured for this operation")
+        return self._storage
 
     async def upload(self, filename: str, content: bytes, content_type: str) -> Documento:
         """Upload a PDF document: validate, deduplicate, store, and persist."""
@@ -61,3 +68,29 @@ class DocumentService:
 
         if not content[:5].startswith(PDF_MAGIC_BYTES):
             raise ValidationError("El contenido del archivo no corresponde a un PDF valido")
+
+    async def list_documents(self, filters: DocumentoFilterParams) -> dict:
+        """List documents with filters, pagination, and sorting."""
+        offset = (filters.page - 1) * filters.page_size
+        items = await self.repo.list_filtered(
+            offset=offset,
+            limit=filters.page_size,
+            sort_by=filters.sort_by,
+            sort_order=filters.sort_order,
+            estado=filters.estado,
+            docente=filters.docente,
+            periodo=filters.periodo,
+            nombre_archivo=filters.nombre_archivo,
+        )
+        total = await self.repo.count_filtered(
+            estado=filters.estado,
+            docente=filters.docente,
+            periodo=filters.periodo,
+            nombre_archivo=filters.nombre_archivo,
+        )
+        return {
+            "items": items,
+            "total": total,
+            "page": filters.page,
+            "page_size": filters.page_size,
+        }
