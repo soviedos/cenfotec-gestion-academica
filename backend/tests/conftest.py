@@ -16,6 +16,7 @@ Notes:
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
 
 from app.api.deps import get_file_storage, get_gemini_gateway
@@ -53,7 +54,7 @@ def engine(postgres_container):
 
     sync_url = postgres_container.get_connection_url()
     async_url = make_url(sync_url).set(drivername="postgresql+asyncpg")
-    return create_async_engine(async_url, echo=False)
+    return create_async_engine(async_url, echo=False, poolclass=NullPool)
 
 
 @pytest.fixture(scope="session", autouse=True)
