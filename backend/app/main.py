@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.api.deps import DbSession
 from app.api.rate_limit import query_rate_limiter
@@ -26,23 +26,41 @@ from app.domain.exceptions import (
 logger = get_logger(__name__)
 
 
-# ── Security headers middleware ──────────────────────────────────────────
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+# ── Security headers middleware (pure ASGI — no background-task issue) ───
+class SecurityHeadersMiddleware:
     """Inject standard security headers into every response."""
 
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        if not settings.is_development:
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'none'; frame-ancestors 'none'"
-            )
-        return response
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                extra = [
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"x-frame-options", b"DENY"),
+                    (b"x-xss-protection", b"1; mode=block"),
+                    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+                    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                ]
+                if not settings.is_development:
+                    extra.append(
+                        (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
+                    )
+                    extra.append(
+                        (
+                            b"content-security-policy",
+                            b"default-src 'none'; frame-ancestors 'none'",
+                        )
+                    )
+                message["headers"] = list(message.get("headers", [])) + extra
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
 
 
 @asynccontextmanager
