@@ -28,12 +28,16 @@ class TTLCache:
     def __init__(self, default_ttl: int = 300) -> None:
         self._default_ttl = default_ttl
         self._redis: aioredis.Redis | None = None
+        self._redis_checked = False
         self._local: dict[str, tuple[float, Any]] = {}
 
     async def _get_redis(self) -> aioredis.Redis | None:
         """Lazy-connect to Redis; return None if unavailable."""
         if self._redis is not None:
             return self._redis
+        if self._redis_checked:
+            return None
+        self._redis_checked = True
         try:
             self._redis = aioredis.from_url(
                 settings.redis_url,
@@ -71,7 +75,10 @@ class TTLCache:
         effective_ttl = ttl if ttl is not None else self._default_ttl
         r = await self._get_redis()
         if r is None:
-            expiry = time.monotonic() + effective_ttl if effective_ttl else 0.0
+            if effective_ttl == 0:
+                self._local.pop(key, None)  # ttl=0 → instant expiry
+                return
+            expiry = time.monotonic() + effective_ttl
             self._local[key] = (expiry, value)
             return
         try:
