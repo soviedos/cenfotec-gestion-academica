@@ -8,18 +8,18 @@ export function DashboardSkeleton() {
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-27 animate-pulse rounded-xl bg-muted/60" />
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-muted/60" />
         ))}
       </div>
       {/* Charts row */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-105 animate-pulse rounded-xl bg-muted/60" />
-        <div className="h-105 animate-pulse rounded-xl bg-muted/60" />
+        <div className="h-[420px] animate-pulse rounded-xl bg-muted/60" />
+        <div className="h-[420px] animate-pulse rounded-xl bg-muted/60" />
       </div>
       {/* Bottom row */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-90 animate-pulse rounded-xl bg-muted/60" />
-        <div className="h-90 animate-pulse rounded-xl bg-muted/60" />
+        <div className="h-[360px] animate-pulse rounded-xl bg-muted/60" />
+        <div className="h-[360px] animate-pulse rounded-xl bg-muted/60" />
       </div>
     </div>
   );
@@ -27,7 +27,7 @@ export function DashboardSkeleton() {
 
 export function DashboardLoading() {
   return (
-    <div className="flex min-h-100 flex-col items-center justify-center gap-3">
+    <div className="flex min-h-[400px] flex-col items-center justify-center gap-3">
       <Loader2 className="size-8 animate-spin text-muted-foreground" />
       <p className="text-sm text-muted-foreground">Cargando dashboard…</p>
     </div>
@@ -36,7 +36,7 @@ export function DashboardLoading() {
 
 export function DashboardEmpty() {
   return (
-    <div className="flex min-h-100 flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-8 text-center">
+    <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-8 text-center">
       <div className="rounded-full bg-muted p-4">
         <svg
           className="size-8 text-muted-foreground"
@@ -71,7 +71,7 @@ export function DashboardError({
   onRetry: () => void;
 }) {
   return (
-    <div className="flex min-h-100 flex-col items-center justify-center gap-4 rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+    <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
       <p className="text-sm text-destructive">{message}</p>
       <button
         onClick={onRetry}

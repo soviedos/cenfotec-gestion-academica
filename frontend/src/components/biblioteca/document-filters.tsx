@@ -105,7 +105,7 @@ export function DocumentFilters({
       aria-label="Filtros de documentos"
     >
       {/* Search by filename */}
-      <div className="relative flex-1 min-w-50">
+      <div className="relative flex-1 min-w-48">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar por nombre de archivo..."
@@ -132,7 +132,7 @@ export function DocumentFilters({
       <select
         value={periodo}
         onChange={(e) => handlePeriodoChange(e.target.value)}
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
         aria-label="Filtrar por periodo"
         disabled={isLoading}
       >
@@ -150,7 +150,7 @@ export function DocumentFilters({
         onChange={(e) =>
           handleEstadoChange(e.target.value as DocumentoEstado | "")
         }
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
         aria-label="Filtrar por estado"
         disabled={isLoading}
       >

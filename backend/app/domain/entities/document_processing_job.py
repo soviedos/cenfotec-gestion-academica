@@ -5,6 +5,9 @@ reprocessing history, ParseError/ParseWarning persistence [BR-PROC-03],
 and parser-version tracking.
 """
 
+from datetime import datetime
+from typing import Any
+
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -29,12 +32,12 @@ class DocumentProcessingJob(UUIDMixin, TimestampMixin, Base):
     evaluaciones_creadas: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # ── Structured logs [BR-PROC-03] ────────────────────────────────────
-    errors: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=list)
-    warnings: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=list)
+    errors: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True, default=list)
+    warnings: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True, default=list)
 
     # ── Timing ──────────────────────────────────────────────────────────
-    started_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ── Relationships ───────────────────────────────────────────────────
     documento = relationship("Documento", lazy="selectin")

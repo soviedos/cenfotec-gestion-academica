@@ -31,7 +31,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex min-h-screen flex-col transition-[margin-left] duration-200 ease-in-out",
-          collapsed ? "lg:ml-17" : "lg:ml-60",
+          collapsed ? "lg:ml-[68px]" : "lg:ml-60",
         )}
       >
         <Navbar onMenuClick={() => setMobileOpen(true)} />

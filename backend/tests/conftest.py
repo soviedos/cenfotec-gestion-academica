@@ -48,9 +48,11 @@ def postgres_container():
 @pytest.fixture(scope="session")
 def engine(postgres_container):
     """Create a single async engine connected to the test container."""
-    # testcontainers gives us a psycopg2 URL; convert to asyncpg
+    # Build an asyncpg URL regardless of what driver testcontainers uses
+    from sqlalchemy.engine import make_url
+
     sync_url = postgres_container.get_connection_url()
-    async_url = sync_url.replace("psycopg2", "asyncpg", 1)
+    async_url = make_url(sync_url).set(drivername="postgresql+asyncpg")
     return create_async_engine(async_url, echo=False)
 
 

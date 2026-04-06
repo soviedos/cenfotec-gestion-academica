@@ -62,7 +62,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                         )}
                       >
                         {isActive && (
-                          <span className="absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
+                          <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" />
                         )}
                         <item.icon
                           className={cn(

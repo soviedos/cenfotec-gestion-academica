@@ -113,4 +113,3 @@ class DocumentService:
                 pass  # Storage cleanup is best-effort; DB cascade is critical
 
         await self.repo.delete(documento)
-        await self.repo.delete(documento)

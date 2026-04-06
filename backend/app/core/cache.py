@@ -1,8 +1,9 @@
 """Redis-backed TTL cache for async functions.
 
 Uses the shared Redis instance so the cache is consistent across
-multiple Uvicorn workers.  Falls back to an in-memory dict when
-Redis is unreachable (development without Redis running).
+multiple Uvicorn workers.  When Redis is unreachable the cache is
+silently disabled (get returns None, set is a no-op), so callers
+always work — just without caching.
 """
 
 from __future__ import annotations

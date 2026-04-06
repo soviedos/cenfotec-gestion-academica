@@ -7,6 +7,7 @@ unreachable, ensuring rate limiting is always enforced.
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import time
 from collections import defaultdict
@@ -80,10 +81,22 @@ class RateLimiter:
         forwarded = request.headers.get("X-Forwarded-For")
         client_host = request.client.host if request.client else "unknown"
 
-        # Only trust X-Forwarded-For from known reverse proxies
-        trusted_proxies = {"127.0.0.1", "::1", "172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"}
-        if forwarded and client_host in trusted_proxies:
-            return forwarded.split(",")[0].strip()
+        # Only trust X-Forwarded-For from known reverse proxies (supports both
+        # exact IPs and CIDR network ranges such as 10.0.0.0/8)
+        _trusted_networks = [
+            ipaddress.ip_network("127.0.0.1/32"),
+            ipaddress.ip_network("::1/128"),
+            ipaddress.ip_network("172.16.0.0/12"),
+            ipaddress.ip_network("10.0.0.0/8"),
+            ipaddress.ip_network("192.168.0.0/16"),
+        ]
+        if forwarded and client_host != "unknown":
+            try:
+                addr = ipaddress.ip_address(client_host)
+                if any(addr in net for net in _trusted_networks):
+                    return forwarded.split(",")[0].strip()
+            except ValueError:
+                pass
         return client_host
 
     def _check_memory(self, key: str) -> bool:
