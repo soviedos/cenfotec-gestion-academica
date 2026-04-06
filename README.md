@@ -6,32 +6,36 @@
 
 ## Descripción
 
-**Evaluaciones Docentes** es un sistema institucional diseñado para recibir evaluaciones docentes en formato PDF, procesarlas de forma automática y extraer información estructurada mediante IA generativa (Gemini). Los resultados se almacenan en una base de datos relacional con soporte para búsqueda semántica, lo que permite generar reportes, visualizar tendencias y consultar evaluaciones de forma inteligente.
+**Evaluaciones Docentes** es un sistema institucional diseñado para recibir evaluaciones docentes en formato PDF, procesarlas de forma automática y extraer información estructurada. Los datos cuantitativos se extraen con un **parser determinístico** (PyMuPDF), mientras que los comentarios cualitativos se analizan con **Gemini API**. Los resultados se almacenan en PostgreSQL con soporte para búsqueda semántica (pgvector), lo que permite generar reportes, visualizar tendencias y consultar evaluaciones en lenguaje natural.
 
 ### Características principales
 
-- Carga masiva de evaluaciones en formato PDF
-- Extracción automática de texto y datos estructurados
-- Análisis semántico con Gemini API
-- Búsqueda por similitud mediante embeddings (pgvector)
-- Dashboard de reportes y métricas por docente, periodo y facultad
-- Procesamiento asíncrono en segundo plano (Celery)
-- Arquitectura on-premise, sin dependencia de servicios cloud externos
+- **Carga de PDFs** con deduplicación SHA-256 y almacenamiento en MinIO
+- **Parser determinístico** — extracción de encabezados, métricas por dimensión, cursos y comentarios
+- **Clasificación cualitativa** — detección de tema, sentimiento y tipo (fortaleza/mejora/observación)
+- **Consultas IA** — endpoint RAG que recupera métricas + comentarios y genera respuestas con Gemini
+- **Dashboards interactivos** — estadísticos (KPIs, radar, tendencias) y de sentimiento (temas, distribución)
+- **Auditoría completa** — cada llamada a Gemini se registra con prompt, tokens, latencia y resultado
+- **Procesamiento asíncrono** en segundo plano (Celery + Redis)
+- **Arquitectura on-premise**, sin dependencia de servicios cloud externos (excepto Gemini API)
 
 ---
 
 ## Stack Tecnológico
 
-| Capa                      | Tecnología              | Versión mínima |
-| ------------------------- | ----------------------- | -------------- |
-| Frontend                  | Next.js + TypeScript    | 16.x           |
-| Backend                   | FastAPI + Python        | 3.12           |
-| Base de datos             | PostgreSQL + pgvector   | 16             |
-| Cola de tareas            | Redis + Celery          | 7.x / 5.x      |
-| Almacenamiento de objetos | MinIO                   | latest         |
-| Inteligencia artificial   | Gemini API              | 2.x            |
-| Contenedores              | Docker + Docker Compose | 24.x / 2.x     |
-| Proxy reverso             | Nginx                   | 1.25           |
+| Capa                    | Tecnología                | Versión    |
+| ----------------------- | ------------------------- | ---------- |
+| Frontend                | Next.js + TypeScript      | 16.x       |
+| UI Components           | shadcn/ui + Tailwind v4   | 4.x        |
+| Gráficos                | Recharts                  | 3.x        |
+| Backend                 | FastAPI + Python          | 3.12       |
+| ORM                     | SQLAlchemy 2.0 (async)    | 2.x        |
+| Base de datos           | PostgreSQL + pgvector     | 16         |
+| Cola de tareas          | Redis + Celery            | 7.x / 5.x  |
+| Almacenamiento objetos  | MinIO                     | latest     |
+| Inteligencia artificial | Gemini API (google-genai) | 2.5-flash  |
+| Contenedores            | Docker + Docker Compose   | 24.x / 2.x |
+| Proxy reverso           | Nginx                     | 1.25       |
 
 ---
 
@@ -52,36 +56,46 @@
 git clone https://github.com/soviedos/Evaluaciones_Docentes.git
 cd Evaluaciones_Docentes
 
-# 2. Copiar variables de entorno
-cp backend/.env.example backend/.env
-cp frontend/.env.local.example frontend/.env.local
+# 2. Configurar variables de entorno
+make setup
+# Luego editar backend/.env y agregar GEMINI_API_KEY
 
 # 3. Levantar toda la stack con Docker Compose
 make dev
 
-# 4. Verificar que los servicios estén activos
+# 4. Ejecutar migraciones
+make migrate
+
+# 5. Verificar que los servicios estén activos
 #    Backend API:   http://localhost:8000/health
 #    Frontend:      http://localhost:3000
 #    MinIO Console: http://localhost:9001
 #    API Docs:      http://localhost:8000/docs
 ```
 
+Para desarrollo local sin Docker, ver [docs/local-development.md](docs/local-development.md).
+
 ---
 
 ## Comandos Principales
 
-Todos los comandos se ejecutan desde la raíz del proyecto vía `Makefile`:
-
 ```bash
 make dev          # Levantar todos los servicios en modo desarrollo
-make down         # Detener y destruir todos los contenedores
+make dev-worker   # Todo + Celery worker
+make infra        # Solo infraestructura (postgres, redis, minio)
+make down         # Detener contenedores
+make down-clean   # Detener + eliminar volúmenes (¡destructivo!)
 make build        # Reconstruir imágenes Docker
 make test         # Ejecutar todos los tests (backend + frontend)
 make test-back    # Tests del backend (pytest)
-make test-front   # Tests del frontend (vitest/jest)
+make test-front   # Tests del frontend (vitest)
+make test-e2e     # Tests E2E (playwright)
 make lint         # Lint de todo el proyecto (ruff + eslint)
-make migrate      # Ejecutar migraciones de base de datos (Alembic)
-make logs         # Ver logs en tiempo real de todos los servicios
+make migrate      # Ejecutar migraciones de base de datos
+make migration    # Crear nueva migración con autogenerate
+make logs         # Ver logs en tiempo real
+make ps           # Ver estado de servicios
+make clean        # Limpiar caches y artefactos
 ```
 
 ---
@@ -90,37 +104,46 @@ make logs         # Ver logs en tiempo real de todos los servicios
 
 ```
 Evaluaciones_Docentes/
-├── frontend/             → Aplicación web (Next.js + TypeScript)
-├── backend/              → API REST y lógica de negocio (FastAPI + Python)
-├── infra/                → Docker Compose, Nginx, scripts de infraestructura
-├── docs/                 → Documentación técnica del proyecto
-├── .github/              → Workflows CI/CD y templates de PR/Issues
-├── .vscode/              → Configuración compartida del editor
-├── Makefile              → Comandos abreviados para desarrollo
-├── .editorconfig         → Reglas de formato entre editores
-├── .gitignore            → Archivos excluidos del control de versiones
-└── LICENSE               → Licencia del proyecto
+├── frontend/             → Aplicación web (Next.js 16 + TypeScript)
+│   ├── src/app/          → Páginas (App Router con route groups)
+│   ├── src/components/   → Componentes React por dominio
+│   ├── src/hooks/        → Custom hooks (data fetching)
+│   ├── src/lib/          → API client, utilidades
+│   ├── src/types/        → Interfaces TypeScript
+│   ├── tests/            → Unit + component tests (Vitest)
+│   └── e2e/              → Tests E2E (Playwright)
+├── backend/              → API REST (FastAPI + Python 3.12)
+│   ├── app/api/          → Endpoints y dependencias
+│   ├── app/application/  → Servicios, parsing, clasificación
+│   ├── app/core/         → Config, logging
+│   ├── app/domain/       → Entidades, schemas, excepciones
+│   ├── app/infrastructure/ → DB, storage, Gemini, Celery
+│   └── tests/            → Unit, integration, API tests (pytest)
+├── infra/                → Docker Compose, Nginx, scripts
+├── docs/                 → Documentación técnica
+├── Makefile              → Comandos abreviados
+└── LICENSE               → MIT
 ```
-
-Cada subdirectorio contiene su propio `README.md` con documentación específica.
 
 ---
 
 ## Documentación
 
-| Documento                                      | Descripción                                    |
-| ---------------------------------------------- | ---------------------------------------------- |
-| [docs/README.md](docs/README.md)               | Índice general de documentación                |
-| [docs/architecture.md](docs/architecture.md)   | Arquitectura del sistema y decisiones técnicas |
-| [docs/api-contracts.md](docs/api-contracts.md) | Contratos y especificación de la API REST      |
-| [docs/deployment.md](docs/deployment.md)       | Guía de despliegue on-premise                  |
-| [docs/adr/](docs/adr/)                         | Registros de decisiones arquitectónicas (ADR)  |
+| Documento                                                  | Descripción                                        |
+| ---------------------------------------------------------- | -------------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md)               | Arquitectura del sistema y diagrama de componentes |
+| [docs/local-development.md](docs/local-development.md)     | Guía completa de desarrollo local                  |
+| [docs/data-model.md](docs/data-model.md)                   | Modelo de datos y diagrama ER                      |
+| [docs/processing-pipeline.md](docs/processing-pipeline.md) | Flujo de procesamiento documental                  |
+| [docs/testing-strategy.md](docs/testing-strategy.md)       | Estrategia y convenciones de testing               |
+| [docs/deployment.md](docs/deployment.md)                   | Guía de despliegue on-premise                      |
+| [docs/gemini-integration.md](docs/gemini-integration.md)   | Guía de integración con Gemini API                 |
+| [docs/api-contracts.md](docs/api-contracts.md)             | Contratos de la API REST                           |
+| [docs/adr/](docs/adr/)                                     | Registros de decisiones arquitectónicas            |
 
 ---
 
 ## Flujo de Trabajo con Git
-
-Este proyecto sigue el flujo **Git Flow simplificado**:
 
 | Rama      | Propósito                                 |
 | --------- | ----------------------------------------- |
@@ -130,7 +153,7 @@ Este proyecto sigue el flujo **Git Flow simplificado**:
 | `fix/*`   | Corrección de errores                     |
 | `chore/*` | Tareas de infraestructura o configuración |
 
-Los commits siguen la convención [Conventional Commits](https://www.conventionalcommits.org/):
+Commits siguen [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 feat(backend): add PDF upload endpoint

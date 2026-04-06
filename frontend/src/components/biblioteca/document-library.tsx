@@ -3,9 +3,16 @@
 import { useCallback, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDocuments } from "@/hooks/use-documents";
+import { deleteDocument } from "@/lib/api/documents";
 import type { DocumentoFilterParams, DocumentoSortField } from "@/types";
 import { DocumentFilters, type FilterValues } from "./document-filters";
 import { DocumentTable } from "./document-table";
@@ -56,6 +63,19 @@ export function DocumentLibrary() {
     setParams((prev) => ({ ...prev, page: newPage }));
   }, []);
 
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await deleteDocument(id);
+        refetch();
+      } catch {
+        // Silently refetch to sync state even on error
+        refetch();
+      }
+    },
+    [refetch],
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -70,7 +90,8 @@ export function DocumentLibrary() {
               )}
             </CardTitle>
             <CardDescription>
-              Biblioteca de PDFs de evaluaciones docentes cargados en la plataforma.
+              Biblioteca de PDFs de evaluaciones docentes cargados en la
+              plataforma.
             </CardDescription>
           </div>
           <Button
@@ -80,13 +101,18 @@ export function DocumentLibrary() {
             disabled={isLoading}
             aria-label="Recargar documentos"
           >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`mr-1.5 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`}
+            />
             Recargar
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <DocumentFilters onFilterChange={handleFilterChange} isLoading={isLoading} />
+        <DocumentFilters
+          onFilterChange={handleFilterChange}
+          isLoading={isLoading}
+        />
 
         {error && (
           <div
@@ -104,6 +130,7 @@ export function DocumentLibrary() {
           sortBy={params.sort_by ?? "created_at"}
           sortOrder={params.sort_order ?? "desc"}
           onSort={handleSort}
+          onDelete={handleDelete}
         />
 
         <PaginationBar

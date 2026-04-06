@@ -7,41 +7,54 @@ Fixture scopes:
     - ``client``: function-scoped — ASGI test client with DB override.
 
 Notes:
-    ``StaticPool`` is used so that every SQLAlchemy connection reuses the same
-    underlying SQLite connection.  Without it, ``sqlite+aiosqlite:///:memory:``
-    would create a brand-new (empty) database for each connection, meaning
-    tables created in the ``tables`` fixture would be invisible to ``db``
-    sessions opened afterwards.
+    Uses ``testcontainers`` to spin up a real PostgreSQL container so that
+    tests exercise the same dialect, UUID type, JSON operators, and
+    constraints as production.  The container is started once per session
+    and torn down automatically.
 """
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
+from testcontainers.postgres import PostgresContainer
 
-from app.api.deps import get_file_storage
+from app.api.deps import get_file_storage, get_gemini_gateway
+from app.api.rate_limit import query_rate_limiter
+from app.core.cache import analytics_cache
 from app.domain.entities.base import Base
 from app.infrastructure.database.session import get_db
 from app.main import app
-from tests.fixtures.fakes import FakeFileStorage
+from tests.fixtures.fakes import FakeFileStorage, FakeGeminiGateway
 
 # ---------------------------------------------------------------------------
-# Engine (session-scoped — one in-memory DB for the whole test run)
+# PostgreSQL container (session-scoped — one container per test run)
 # ---------------------------------------------------------------------------
-# StaticPool forces every create_engine() call to reuse the same underlying
-# connection, so tables created in `tables` are visible in every `db` session.
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+_PG_IMAGE = "pgvector/pgvector:pg16"
 
 
 @pytest.fixture(scope="session")
-def engine():
-    """Create a single async engine shared across the entire test session."""
-    return create_async_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False,
-    )
+def postgres_container():
+    """Start a disposable PostgreSQL container for the entire test session."""
+    with PostgresContainer(
+        image=_PG_IMAGE,
+        username="test_user",
+        password="test_pass",
+        dbname="test_evaluaciones",
+    ) as pg:
+        yield pg
+
+
+@pytest.fixture(scope="session")
+def engine(postgres_container):
+    """Create a single async engine connected to the test container."""
+    # Build an asyncpg URL regardless of what driver testcontainers uses
+    from sqlalchemy.engine import make_url
+
+    sync_url = postgres_container.get_connection_url()
+    async_url = make_url(sync_url).set(drivername="postgresql+asyncpg")
+    return create_async_engine(async_url, echo=False, poolclass=NullPool)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -75,6 +88,19 @@ async def db(engine):
 
 
 # ---------------------------------------------------------------------------
+# Clear analytics cache between tests
+# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+async def _clear_analytics_cache():
+    """Ensure each test starts with a fresh analytics cache."""
+    await analytics_cache.invalidate()
+    await query_rate_limiter.reset()
+    yield
+    await analytics_cache.invalidate()
+    await query_rate_limiter.reset()
+
+
+# ---------------------------------------------------------------------------
 # Fake file storage (function-scoped)
 # ---------------------------------------------------------------------------
 @pytest.fixture
@@ -84,19 +110,27 @@ def fake_storage():
 
 
 # ---------------------------------------------------------------------------
+# Fake Gemini gateway (function-scoped)
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def fake_gemini():
+    """Provide a fake Gemini gateway that returns canned responses."""
+    return FakeGeminiGateway()
+
+
+# ---------------------------------------------------------------------------
 # ASGI test client (function-scoped)
 # ---------------------------------------------------------------------------
 @pytest.fixture
-async def client(db, fake_storage):
-    """HTTP test client with DB and storage dependencies overridden."""
+async def client(db, fake_storage, fake_gemini):
+    """HTTP test client with DB, storage, and Gemini dependencies overridden."""
 
     async def _override():
         yield db
 
     app.dependency_overrides[get_db] = _override
     app.dependency_overrides[get_file_storage] = lambda: fake_storage
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    app.dependency_overrides[get_gemini_gateway] = lambda: fake_gemini
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()

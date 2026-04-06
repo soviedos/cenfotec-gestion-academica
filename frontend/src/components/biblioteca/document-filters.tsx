@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { listPeriodos } from "@/lib/api/documents";
 import type { DocumentoEstado } from "@/types";
 
 interface DocumentFiltersProps {
@@ -28,7 +29,17 @@ export function DocumentFilters({
   const [docente, setDocente] = useState("");
   const [periodo, setPeriodo] = useState("");
   const [estado, setEstado] = useState<DocumentoEstado | "">("");
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [periodos, setPeriodos] = useState<string[]>([]);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  // Fetch available periodos on mount
+  useEffect(() => {
+    listPeriodos()
+      .then(setPeriodos)
+      .catch(() => {});
+  }, []);
 
   const hasActiveFilters = search || docente || periodo || estado;
 
@@ -94,7 +105,7 @@ export function DocumentFilters({
       aria-label="Filtros de documentos"
     >
       {/* Search by filename */}
-      <div className="relative flex-1 min-w-[200px]">
+      <div className="relative flex-1 min-w-48">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar por nombre de archivo..."
@@ -107,7 +118,7 @@ export function DocumentFilters({
       </div>
 
       {/* Docente filter */}
-      <div className="min-w-[160px]">
+      <div className="min-w-40">
         <Input
           placeholder="Docente..."
           value={docente}
@@ -118,15 +129,20 @@ export function DocumentFilters({
       </div>
 
       {/* Periodo filter */}
-      <div className="min-w-[120px]">
-        <Input
-          placeholder="Periodo (ej: 2025-1)"
-          value={periodo}
-          onChange={(e) => handlePeriodoChange(e.target.value)}
-          aria-label="Filtrar por periodo"
-          disabled={isLoading}
-        />
-      </div>
+      <select
+        value={periodo}
+        onChange={(e) => handlePeriodoChange(e.target.value)}
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+        aria-label="Filtrar por periodo"
+        disabled={isLoading}
+      >
+        <option value="">Todos los períodos</option>
+        {periodos.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
 
       {/* Estado filter */}
       <select
@@ -134,7 +150,7 @@ export function DocumentFilters({
         onChange={(e) =>
           handleEstadoChange(e.target.value as DocumentoEstado | "")
         }
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
         aria-label="Filtrar por estado"
         disabled={isLoading}
       >

@@ -10,6 +10,7 @@ from app.application.parsing.schemas import (
     FuentePuntaje,
     HeaderData,
     ParsedEvaluacion,
+    PeriodoData,
     ResumenPorcentajes,
 )
 
@@ -86,10 +87,16 @@ class TestCursoGrupo:
     def test_negative_students(self):
         with pytest.raises(ValidationError):
             CursoGrupo(
-                escuela="X", codigo="Y-1", nombre="Z",
-                estudiantes_respondieron=-1, estudiantes_matriculados=10,
-                grupo="G", pct_estudiante=0, pct_director=0,
-                pct_autoevaluacion=0, pct_promedio_general=0,
+                escuela="X",
+                codigo="Y-1",
+                nombre="Z",
+                estudiantes_respondieron=-1,
+                estudiantes_matriculados=10,
+                grupo="G",
+                pct_estudiante=0,
+                pct_director=0,
+                pct_autoevaluacion=0,
+                pct_promedio_general=0,
             )
 
 
@@ -114,31 +121,55 @@ class TestParsedEvaluacion:
                 periodo="C1 2025",
                 recinto="SEDE",
             ),
+            periodo_data=PeriodoData(
+                periodo_raw="C1 2025",
+                periodo_normalizado="C1 2025",
+                modalidad="CUATRIMESTRAL",
+                año=2025,
+                periodo_orden=1,
+                prefijo="C",
+                numero=1,
+            ),
             dimensiones=[
                 DimensionMetrica(
                     nombre="METODOLOGÍA",
                     estudiante=FuentePuntaje(
-                        puntos_obtenidos=18, puntos_maximos=20, porcentaje=90,
+                        puntos_obtenidos=18,
+                        puntos_maximos=20,
+                        porcentaje=90,
                     ),
                     director=FuentePuntaje(
-                        puntos_obtenidos=10, puntos_maximos=10, porcentaje=100,
+                        puntos_obtenidos=10,
+                        puntos_maximos=10,
+                        porcentaje=100,
                     ),
                     autoevaluacion=FuentePuntaje(
-                        puntos_obtenidos=16, puntos_maximos=20, porcentaje=80,
+                        puntos_obtenidos=16,
+                        puntos_maximos=20,
+                        porcentaje=80,
                     ),
                     promedio_general_puntos=14.0,
                     promedio_general_pct=90.0,
                 ),
             ],
             resumen_pct=ResumenPorcentajes(
-                estudiante=90.0, director=100.0, autoevaluacion=80.0, promedio_general=90.0,
+                estudiante=90.0,
+                director=100.0,
+                autoevaluacion=80.0,
+                promedio_general=90.0,
             ),
             cursos=[
                 CursoGrupo(
-                    escuela="ESC", codigo="X-01", nombre="Test",
-                    estudiantes_respondieron=10, estudiantes_matriculados=12,
-                    grupo="G1", pct_estudiante=90, pct_director=100,
-                    pct_autoevaluacion=80, pct_promedio_general=90,
+                    escuela="ESC",
+                    codigo="X-01",
+                    nombre="Test",
+                    estudiantes_respondieron=10,
+                    estudiantes_matriculados=12,
+                    grupo="G1",
+                    pct_estudiante=90,
+                    pct_director=100,
+                    pct_autoevaluacion=80,
+                    pct_promedio_general=90,
                 ),
             ],
             total_respondieron=10,
@@ -155,16 +186,36 @@ class TestParsedEvaluacion:
         with pytest.raises(ValidationError):
             ParsedEvaluacion(
                 header=HeaderData(profesor_nombre="X Y", periodo="C1", recinto="S"),
+                periodo_data=PeriodoData(
+                    periodo_raw="C1 2025",
+                    periodo_normalizado="C1 2025",
+                    modalidad="CUATRIMESTRAL",
+                    año=2025,
+                    periodo_orden=1,
+                    prefijo="C",
+                    numero=1,
+                ),
                 dimensiones=[],
                 resumen_pct=ResumenPorcentajes(
-                    estudiante=0, director=0, autoevaluacion=0, promedio_general=0,
+                    estudiante=0,
+                    director=0,
+                    autoevaluacion=0,
+                    promedio_general=0,
                 ),
-                cursos=[CursoGrupo(
-                    escuela="E", codigo="Z-1", nombre="N",
-                    estudiantes_respondieron=0, estudiantes_matriculados=0,
-                    grupo="G", pct_estudiante=0, pct_director=0,
-                    pct_autoevaluacion=0, pct_promedio_general=0,
-                )],
+                cursos=[
+                    CursoGrupo(
+                        escuela="E",
+                        codigo="Z-1",
+                        nombre="N",
+                        estudiantes_respondieron=0,
+                        estudiantes_matriculados=0,
+                        grupo="G",
+                        pct_estudiante=0,
+                        pct_director=0,
+                        pct_autoevaluacion=0,
+                        pct_promedio_general=0,
+                    )
+                ],
                 total_respondieron=0,
                 total_matriculados=0,
             )
@@ -173,24 +224,42 @@ class TestParsedEvaluacion:
         with pytest.raises(ValidationError):
             ParsedEvaluacion(
                 header=HeaderData(profesor_nombre="X Y", periodo="C1", recinto="S"),
+                periodo_data=PeriodoData(
+                    periodo_raw="C1 2025",
+                    periodo_normalizado="C1 2025",
+                    modalidad="CUATRIMESTRAL",
+                    año=2025,
+                    periodo_orden=1,
+                    prefijo="C",
+                    numero=1,
+                ),
                 dimensiones=[
                     DimensionMetrica(
                         nombre="A",
                         estudiante=FuentePuntaje(
-                            puntos_obtenidos=1, puntos_maximos=1, porcentaje=100,
+                            puntos_obtenidos=1,
+                            puntos_maximos=1,
+                            porcentaje=100,
                         ),
                         director=FuentePuntaje(
-                            puntos_obtenidos=1, puntos_maximos=1, porcentaje=100,
+                            puntos_obtenidos=1,
+                            puntos_maximos=1,
+                            porcentaje=100,
                         ),
                         autoevaluacion=FuentePuntaje(
-                            puntos_obtenidos=1, puntos_maximos=1, porcentaje=100,
+                            puntos_obtenidos=1,
+                            puntos_maximos=1,
+                            porcentaje=100,
                         ),
                         promedio_general_puntos=1,
                         promedio_general_pct=100,
                     ),
                 ],
                 resumen_pct=ResumenPorcentajes(
-                    estudiante=100, director=100, autoevaluacion=100, promedio_general=100,
+                    estudiante=100,
+                    director=100,
+                    autoevaluacion=100,
+                    promedio_general=100,
                 ),
                 cursos=[],
                 total_respondieron=0,

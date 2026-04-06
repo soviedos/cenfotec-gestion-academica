@@ -33,10 +33,14 @@ class QualitativeService:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
     ) -> ResumenCualitativo:
         data = await self.repo.resumen(
-            periodo=periodo, docente=docente,
-            asignatura=asignatura, escuela=escuela,
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
         )
         return ResumenCualitativo(
             total_comentarios=data["total_comentarios"],
@@ -53,6 +57,7 @@ class QualitativeService:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
         sentimiento: str | None = None,
@@ -65,6 +70,7 @@ class QualitativeService:
             docente=docente,
             asignatura=asignatura,
             escuela=escuela,
+            modalidad=modalidad,
             tipo=tipo,
             tema=tema,
             sentimiento=sentimiento,
@@ -76,6 +82,7 @@ class QualitativeService:
             docente=docente,
             asignatura=asignatura,
             escuela=escuela,
+            modalidad=modalidad,
             tipo=tipo,
             tema=tema,
             sentimiento=sentimiento,
@@ -89,10 +96,16 @@ class QualitativeService:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
     ) -> list[TemaDistribucion]:
         rows = await self.repo.distribucion_temas(
-            periodo=periodo, docente=docente, asignatura=asignatura, escuela=escuela, tipo=tipo
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
         )
         return [TemaDistribucion(**r) for r in rows]
 
@@ -103,13 +116,18 @@ class QualitativeService:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
     ) -> list[SentimientoDistribucion]:
         rows = await self.repo.distribucion_sentimiento(
-            periodo=periodo, docente=docente,
-            asignatura=asignatura, escuela=escuela,
-            tipo=tipo, tema=tema,
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
+            tema=tema,
         )
         return [SentimientoDistribucion(**r) for r in rows]
 
@@ -120,10 +138,16 @@ class QualitativeService:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
     ) -> NubePalabras:
         palabras = await self.repo.nube_palabras(
-            periodo=periodo, docente=docente, asignatura=asignatura, escuela=escuela, tipo=tipo
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
         )
         return NubePalabras(
             tipo=tipo or "all",

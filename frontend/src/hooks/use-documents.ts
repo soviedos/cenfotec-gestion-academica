@@ -31,6 +31,8 @@ export function useDocuments(params: DocumentoFilterParams = {}) {
 
   const paramsKey = JSON.stringify(params);
   const abortRef = useRef<AbortController | null>(null);
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   const fetchDocuments = useCallback(async () => {
     abortRef.current?.abort();
@@ -39,7 +41,7 @@ export function useDocuments(params: DocumentoFilterParams = {}) {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const result = await listDocuments(params);
+      const result = await listDocuments(paramsRef.current);
       setState({ data: result, isLoading: false, error: null });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -47,7 +49,8 @@ export function useDocuments(params: DocumentoFilterParams = {}) {
         err instanceof Error ? err.message : "Error al cargar documentos";
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
     }
-  }, [paramsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
 
   useEffect(() => {
     fetchDocuments();

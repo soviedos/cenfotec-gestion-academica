@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import { Sparkles } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { QueryDashboard } from "@/components/consultas-ia";
 
 export const metadata: Metadata = {
   title: "Consultas IA",
@@ -22,23 +15,7 @@ export default function ConsultasIaPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Asistente inteligente</CardTitle>
-          <CardDescription>
-            Usa el modelo Gemini para consultar y analizar la información
-            recopilada de las evaluaciones.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Sparkles className="mb-4 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Escribe una pregunta para obtener insights de las evaluaciones.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <QueryDashboard />
     </div>
   );
 }

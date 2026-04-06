@@ -11,7 +11,22 @@ from sqlalchemy import Float, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.evaluacion import Evaluacion
+from app.domain.entities.evaluacion_curso import EvaluacionCurso
 from app.domain.entities.evaluacion_dimension import EvaluacionDimension
+from app.domain.periodo import sort_periodos
+
+
+def _curso_filter_subquery(
+    escuela: str | None = None,
+    curso: str | None = None,
+):
+    """Return a subquery of evaluacion_ids matching escuela/curso criteria."""
+    sq = select(EvaluacionCurso.evaluacion_id)
+    if escuela:
+        sq = sq.where(EvaluacionCurso.escuela == escuela)
+    if curso:
+        sq = sq.where(EvaluacionCurso.nombre == curso)
+    return sq
 
 
 class AnalyticsRepository:
@@ -26,6 +41,9 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
+        escuela: str | None = None,
+        curso: str | None = None,
     ) -> dict:
         """Return global summary metrics.
 
@@ -35,12 +53,16 @@ class AnalyticsRepository:
         base = select(Evaluacion).where(Evaluacion.estado == "completado")
         if periodo:
             base = base.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            base = base.where(Evaluacion.modalidad == modalidad)
+        if escuela or curso:
+            base = base.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
 
         sub = base.subquery()
 
-        avg_expr = func.coalesce(
-            func.avg(sub.c.puntaje_general.cast(Float)), 0.0
-        ).label("promedio_global")
+        avg_expr = func.coalesce(func.avg(sub.c.puntaje_general.cast(Float)), 0.0).label(
+            "promedio_global"
+        )
         stmt = select(
             avg_expr,
             func.count(sub.c.id).label("total_evaluaciones"),
@@ -61,6 +83,9 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
+        escuela: str | None = None,
+        curso: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
@@ -77,6 +102,10 @@ class AnalyticsRepository:
         )
         if periodo:
             stmt = stmt.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
+        if escuela or curso:
+            stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
         stmt = stmt.offset(offset).limit(limit)
 
         rows = (await self.session.execute(stmt)).all()
@@ -96,22 +125,34 @@ class AnalyticsRepository:
         *,
         periodo: str | None = None,
         docente: str | None = None,
+        modalidad: str | None = None,
+        escuela: str | None = None,
+        curso: str | None = None,
     ) -> list[dict]:
         """Return average percentages per evaluation dimension."""
-        stmt = select(
-            EvaluacionDimension.nombre.label("dimension"),
-            func.avg(EvaluacionDimension.pct_estudiante.cast(Float)).label("pct_estudiante"),
-            func.avg(EvaluacionDimension.pct_director.cast(Float)).label("pct_director"),
-            func.avg(EvaluacionDimension.pct_autoeval.cast(Float)).label("pct_autoeval"),
-            func.avg(EvaluacionDimension.pct_promedio.cast(Float)).label("pct_promedio"),
-        ).group_by(EvaluacionDimension.nombre).order_by(EvaluacionDimension.nombre)
+        stmt = (
+            select(
+                EvaluacionDimension.nombre.label("dimension"),
+                func.avg(EvaluacionDimension.pct_estudiante.cast(Float)).label("pct_estudiante"),
+                func.avg(EvaluacionDimension.pct_director.cast(Float)).label("pct_director"),
+                func.avg(EvaluacionDimension.pct_autoeval.cast(Float)).label("pct_autoeval"),
+                func.avg(EvaluacionDimension.pct_promedio.cast(Float)).label("pct_promedio"),
+            )
+            .group_by(EvaluacionDimension.nombre)
+            .order_by(EvaluacionDimension.nombre)
+        )
 
-        if periodo or docente:
+        needs_join = periodo or docente or modalidad or escuela or curso
+        if needs_join:
             stmt = stmt.join(Evaluacion, EvaluacionDimension.evaluacion_id == Evaluacion.id)
             if periodo:
                 stmt = stmt.where(Evaluacion.periodo == periodo)
             if docente:
                 stmt = stmt.where(Evaluacion.docente_nombre == docente)
+            if modalidad:
+                stmt = stmt.where(Evaluacion.modalidad == modalidad)
+            if escuela or curso:
+                stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
 
         rows = (await self.session.execute(stmt)).all()
         return [
@@ -131,6 +172,9 @@ class AnalyticsRepository:
         self,
         *,
         docente: str | None = None,
+        modalidad: str | None = None,
+        escuela: str | None = None,
+        curso: str | None = None,
     ) -> list[dict]:
         """Return average score per period for trend analysis."""
         stmt = (
@@ -141,13 +185,16 @@ class AnalyticsRepository:
             )
             .where(Evaluacion.estado == "completado")
             .group_by(Evaluacion.periodo)
-            .order_by(Evaluacion.periodo)
         )
         if docente:
             stmt = stmt.where(Evaluacion.docente_nombre == docente)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
+        if escuela or curso:
+            stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
 
         rows = (await self.session.execute(stmt)).all()
-        return [
+        unsorted = [
             {
                 "periodo": r.periodo,
                 "promedio": round(float(r.promedio), 2),
@@ -155,6 +202,7 @@ class AnalyticsRepository:
             }
             for r in rows
         ]
+        return sort_periodos(unsorted)  # [BR-AN-40]
 
     # ── 5. Ranking de docentes ──────────────────────────────────────
 
@@ -162,6 +210,9 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
+        escuela: str | None = None,
+        curso: str | None = None,
         limit: int = 10,
     ) -> list[dict]:
         """Return top teachers ranked by average score."""
@@ -178,6 +229,10 @@ class AnalyticsRepository:
         )
         if periodo:
             stmt = stmt.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
+        if escuela or curso:
+            stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
 
         rows = (await self.session.execute(stmt)).all()
         return [
@@ -189,3 +244,50 @@ class AnalyticsRepository:
             }
             for idx, r in enumerate(rows)
         ]
+
+    # ── 6. Distinct escuelas ────────────────────────────────────────
+
+    async def distinct_escuelas(
+        self,
+        *,
+        modalidad: str | None = None,
+        periodo: str | None = None,
+    ) -> list[str]:
+        """Return sorted list of distinct escuelas."""
+        stmt = select(func.distinct(EvaluacionCurso.escuela)).where(
+            EvaluacionCurso.escuela.isnot(None)
+        )
+        if modalidad or periodo:
+            stmt = stmt.join(Evaluacion, EvaluacionCurso.evaluacion_id == Evaluacion.id)
+            stmt = stmt.where(Evaluacion.estado == "completado")
+            if modalidad:
+                stmt = stmt.where(Evaluacion.modalidad == modalidad)
+            if periodo:
+                stmt = stmt.where(Evaluacion.periodo == periodo)
+        rows = (await self.session.execute(stmt)).scalars().all()
+        return sorted(rows)
+
+    # ── 7. Distinct cursos ──────────────────────────────────────────
+
+    async def distinct_cursos(
+        self,
+        *,
+        escuela: str | None = None,
+        modalidad: str | None = None,
+        periodo: str | None = None,
+    ) -> list[str]:
+        """Return sorted list of distinct curso names."""
+        stmt = select(func.distinct(EvaluacionCurso.nombre)).where(
+            EvaluacionCurso.nombre.isnot(None)
+        )
+        if escuela:
+            stmt = stmt.where(EvaluacionCurso.escuela == escuela)
+        if modalidad or periodo:
+            stmt = stmt.join(Evaluacion, EvaluacionCurso.evaluacion_id == Evaluacion.id)
+            stmt = stmt.where(Evaluacion.estado == "completado")
+            if modalidad:
+                stmt = stmt.where(Evaluacion.modalidad == modalidad)
+            if periodo:
+                stmt = stmt.where(Evaluacion.periodo == periodo)
+        rows = (await self.session.execute(stmt)).scalars().all()
+        return sorted(rows)

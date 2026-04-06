@@ -6,11 +6,17 @@ This service encapsulates the full processing pipeline:
 2. Download PDF bytes from storage
 3. Run the deterministic parser
 4. Persist the ``Evaluacion`` record with extracted data
-5. Transition document to ``procesado`` (or ``error``)
+5. Classify comments with keyword rules (fast, deterministic)
+6. Enrich comments with Gemini analysis (best-effort, skipped if no API key)
+7. Transition document to ``procesado`` (or ``error``)
 
-Currently runs in-process via ``BackgroundTasks``.  To migrate to Celery
-later, wrap ``process_document()`` in a Celery task — the interface stays
-the same.
+Currently runs in-process via ``BackgroundTasks``.  If the worker dies
+mid-processing, the document stays in ``procesando`` state.  Re-processing
+can be triggered by re-uploading or via manual retry.
+
+To migrate to Celery for fault-tolerant processing, wrap
+``process_document()`` in a Celery task at
+``app.infrastructure.tasks.celery_app`` — the interface stays the same.
 """
 
 from __future__ import annotations
@@ -24,15 +30,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.classification import classify_comment
 from app.application.parsing.errors import ParseResult
 from app.application.parsing.parser import parse_evaluacion
+from app.application.services.gemini_enrichment_service import GeminiEnrichmentService
 from app.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.domain.entities.evaluacion import Evaluacion
 from app.domain.entities.evaluacion_curso import EvaluacionCurso
 from app.domain.entities.evaluacion_dimension import EvaluacionDimension
+from app.infrastructure.external.gemini_gateway import GeminiGateway
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.repositories.evaluacion import EvaluacionRepository
 from app.infrastructure.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
+
+_MAX_COMMENT_LENGTH = 10_000
 
 
 class ProcessingService:
@@ -42,11 +52,13 @@ class ProcessingService:
         self,
         db: AsyncSession,
         storage: FileStorage,
+        gemini_gateway: GeminiGateway | None = None,
     ) -> None:
         self.db = db
         self.storage = storage
         self.doc_repo = DocumentoRepository(db)
         self.eval_repo = EvaluacionRepository(db)
+        self._gemini_gateway = gemini_gateway
 
     async def process_document(self, documento_id: uuid.UUID) -> None:
         """Run the full processing pipeline for one document.
@@ -56,7 +68,7 @@ class ProcessingService:
 
         Uses a savepoint so that a failure during parsing/persistence can
         be rolled back without losing the ability to mark the document as
-        ``error``.  The caller is responsible for the final ``commit()``.
+        ``error``.  Commits the transaction at the end.
         """
         doc = await self.doc_repo.get_by_id(documento_id)
         if doc is None:
@@ -87,10 +99,11 @@ class ProcessingService:
 
                 if result.success and result.data is not None:
                     # ── Step 4: Persist evaluation ──────────────────
-                    await self._persist_evaluation(doc.id, result)
+                    evaluacion = await self._persist_evaluation(doc.id, result)
                     doc.estado = "procesado"
                     doc.error_detalle = None
                 else:
+                    evaluacion = None
                     doc.estado = "error"
                     doc.error_detalle = self._format_errors(result)
 
@@ -100,6 +113,25 @@ class ProcessingService:
                 raise
 
             await self.db.flush()
+
+            # ── Step 5: Gemini enrichment (best-effort) ─────────────
+            if evaluacion and self._gemini_gateway:
+                try:
+                    enrichment = GeminiEnrichmentService(self.db, self._gemini_gateway)
+                    enriched = await enrichment.enrich_evaluation_comments(evaluacion.id)
+                    logger.info(
+                        "Gemini enrichment: %d comments upgraded for doc %s",
+                        enriched,
+                        documento_id,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Gemini enrichment failed for doc %s (keyword results kept)",
+                        documento_id,
+                        exc_info=True,
+                    )
+
+            await self.db.commit()
 
             logger.info(
                 "Document %s processed: estado=%s",
@@ -111,7 +143,7 @@ class ProcessingService:
             logger.exception("Unexpected error processing document %s", documento_id)
             doc.estado = "error"
             doc.error_detalle = "Error inesperado durante el procesamiento"
-            await self.db.flush()
+            await self.db.commit()
 
     async def _persist_evaluation(
         self,
@@ -128,8 +160,11 @@ class ProcessingService:
         evaluacion = Evaluacion(
             documento_id=documento_id,
             docente_nombre=data.header.profesor_nombre,
-            periodo=data.header.periodo,
-            materia=None,  # Multi-course — stored in datos_json
+            periodo=data.periodo_data.periodo_normalizado,
+            modalidad=data.periodo_data.modalidad,
+            año=data.periodo_data.año,
+            periodo_orden=data.periodo_data.periodo_orden,
+            materia=data.cursos[0].nombre if data.cursos else None,
             puntaje_general=data.resumen_pct.promedio_general,
             estado="completado",
             datos_completos=json.dumps(datos_json, ensure_ascii=False),
@@ -138,30 +173,34 @@ class ProcessingService:
 
         # ── Persist normalized dimensions (for analytics) ───────────
         for dim in data.dimensiones:
-            self.db.add(EvaluacionDimension(
-                evaluacion_id=evaluacion.id,
-                nombre=dim.nombre,
-                pct_estudiante=dim.estudiante.porcentaje,
-                pct_director=dim.director.porcentaje,
-                pct_autoeval=dim.autoevaluacion.porcentaje,
-                pct_promedio=dim.promedio_general_pct,
-            ))
+            self.db.add(
+                EvaluacionDimension(
+                    evaluacion_id=evaluacion.id,
+                    nombre=dim.nombre,
+                    pct_estudiante=dim.estudiante.porcentaje,
+                    pct_director=dim.director.porcentaje,
+                    pct_autoeval=dim.autoevaluacion.porcentaje,
+                    pct_promedio=dim.promedio_general_pct,
+                )
+            )
 
         # ── Persist normalized courses (for analytics) ──────────────
         for curso in data.cursos:
-            self.db.add(EvaluacionCurso(
-                evaluacion_id=evaluacion.id,
-                escuela=curso.escuela,
-                codigo=curso.codigo,
-                nombre=curso.nombre,
-                grupo=curso.grupo,
-                respondieron=curso.estudiantes_respondieron,
-                matriculados=curso.estudiantes_matriculados,
-                pct_estudiante=curso.pct_estudiante,
-                pct_director=curso.pct_director,
-                pct_autoeval=curso.pct_autoevaluacion,
-                pct_promedio=curso.pct_promedio_general,
-            ))
+            self.db.add(
+                EvaluacionCurso(
+                    evaluacion_id=evaluacion.id,
+                    escuela=curso.escuela,
+                    codigo=curso.codigo,
+                    nombre=curso.nombre,
+                    grupo=curso.grupo,
+                    respondieron=curso.estudiantes_respondieron,
+                    matriculados=curso.estudiantes_matriculados,
+                    pct_estudiante=curso.pct_estudiante,
+                    pct_director=curso.pct_director,
+                    pct_autoeval=curso.pct_autoevaluacion,
+                    pct_promedio=curso.pct_promedio_general,
+                )
+            )
 
         # ── Persist normalized comments (for qualitative analysis) ────
         for seccion in data.secciones_comentarios:
@@ -171,21 +210,23 @@ class ProcessingService:
                     ("mejora", comentario.mejora),
                     ("observacion", comentario.observacion),
                 ):
-                    if not campo:
+                    if not campo or len(campo) > _MAX_COMMENT_LENGTH:
                         continue
                     cls = classify_comment(campo, tipo_col)
-                    self.db.add(ComentarioAnalisis(
-                        evaluacion_id=evaluacion.id,
-                        fuente=seccion.tipo_evaluacion,
-                        asignatura=seccion.asignatura,
-                        tipo=tipo_col,
-                        texto=campo,
-                        tema=cls["tema"],
-                        tema_confianza=cls["tema_confianza"],
-                        sentimiento=cls["sentimiento"],
-                        sent_score=cls["sent_score"],
-                        procesado_ia=False,
-                    ))
+                    self.db.add(
+                        ComentarioAnalisis(
+                            evaluacion_id=evaluacion.id,
+                            fuente=seccion.tipo_evaluacion,
+                            asignatura=seccion.asignatura,
+                            tipo=tipo_col,
+                            texto=campo,
+                            tema=cls["tema"],
+                            tema_confianza=cls["tema_confianza"],
+                            sentimiento=cls["sentimiento"],
+                            sent_score=cls["sent_score"],
+                            procesado_ia=False,
+                        )
+                    )
 
         await self.db.flush()
         return evaluacion

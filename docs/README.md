@@ -6,12 +6,17 @@
 
 ## Documentos Disponibles
 
-| Documento                            | Descripción                                                             | Audiencia                          |
-| ------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------- |
-| [architecture.md](architecture.md)   | Arquitectura del sistema, diagrama de componentes y decisiones técnicas | Desarrolladores, Arquitectos       |
-| [api-contracts.md](api-contracts.md) | Especificación de endpoints de la API REST (request/response)           | Desarrolladores Frontend y Backend |
-| [deployment.md](deployment.md)       | Guía de despliegue on-premise con Docker Compose                        | DevOps, Administradores            |
-| [adr/](adr/)                         | Registros de decisiones arquitectónicas (ADR)                           | Todo el equipo                     |
+| Documento                                        | Descripción                                                             | Audiencia                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| [architecture.md](architecture.md)               | Arquitectura del sistema, diagrama de componentes y decisiones técnicas | Desarrolladores, Arquitectos       |
+| [data-model.md](data-model.md)                   | Modelo de datos: esquema ER, tablas, columnas, índices, migraciones     | Desarrolladores Backend, DBA       |
+| [processing-pipeline.md](processing-pipeline.md) | Flujo de procesamiento: upload → parseo → clasificación → persistencia  | Desarrolladores Backend            |
+| [gemini-integration.md](gemini-integration.md)   | Integración con Gemini API: RAG, prompts, auditoría, manejo de errores  | Desarrolladores Backend            |
+| [testing-strategy.md](testing-strategy.md)       | Estrategia de testing: pirámide, fixtures, herramientas, convenciones   | Todo el equipo de desarrollo       |
+| [local-development.md](local-development.md)     | Guía de desarrollo local: setup, comandos, troubleshooting              | Nuevos desarrolladores             |
+| [deployment.md](deployment.md)                   | Guía de despliegue on-premise con Docker Compose + Nginx                | DevOps, Administradores            |
+| [api-contracts.md](api-contracts.md)             | Especificación de endpoints de la API REST (request/response)           | Desarrolladores Frontend y Backend |
+| [adr/](adr/)                                     | Registros de decisiones arquitectónicas (ADR)                           | Todo el equipo                     |
 
 ---
 
@@ -48,7 +53,7 @@ cp docs/adr/001-monorepo.md docs/adr/NNN-titulo-descriptivo.md
 
 ## Pendientes de Documentación
 
+- [x] ~~Modelo de datos y diagrama ER~~ → [data-model.md](data-model.md)
+- [x] ~~Guía de integración con Gemini API~~ → [gemini-integration.md](gemini-integration.md)
 - [ ] Guía de onboarding para nuevos desarrolladores
-- [ ] Modelo de datos y diagrama ER
-- [ ] Guía de integración con Gemini API
 - [ ] Runbook de operaciones y troubleshooting

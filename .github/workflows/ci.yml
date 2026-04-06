@@ -41,6 +41,7 @@ jobs:
         run: pytest tests/ -v --tb=short
         env:
           ENVIRONMENT: testing
+          PYTHONPATH: .
 
   # ──────────────────────────────────────────────
   # Frontend: Node 22 — eslint + type-check + test + build

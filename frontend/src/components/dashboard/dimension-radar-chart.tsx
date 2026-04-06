@@ -40,7 +40,7 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[320px] items-center justify-center">
+          <div className="flex h-80 items-center justify-center">
             <p className="text-sm text-muted-foreground">
               No hay datos de dimensiones disponibles.
             </p>
@@ -52,9 +52,7 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
 
   const chartData = data.map((d) => ({
     dimension:
-      d.dimension.length > 14
-        ? d.dimension.slice(0, 12) + "…"
-        : d.dimension,
+      d.dimension.length > 14 ? d.dimension.slice(0, 12) + "…" : d.dimension,
     fullDimension: d.dimension,
     Estudiante: d.pct_estudiante ?? 0,
     Director: d.pct_director ?? 0,

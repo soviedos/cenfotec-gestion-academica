@@ -5,8 +5,7 @@ Works on raw text (``page.get_text()``) from the first page.
 
 from __future__ import annotations
 
-from app.application.parsing.constants import (PERIODO_RE, PROFESOR_RE,
-                                               RECINTO_RE)
+from app.application.parsing.constants import PERIODO_RE, PROFESOR_RE, RECINTO_RE
 from app.application.parsing.schemas import HeaderData
 
 

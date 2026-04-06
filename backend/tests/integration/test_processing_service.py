@@ -12,14 +12,18 @@ import pytest
 
 from app.application.parsing.errors import ParseError, ParseMetadata, ParseResult
 from app.application.parsing.schemas import (
+    Comentario,
     CursoGrupo,
     DimensionMetrica,
     FuentePuntaje,
     HeaderData,
     ParsedEvaluacion,
+    PeriodoData,
     ResumenPorcentajes,
+    SeccionComentarios,
 )
 from app.application.services.processing_service import ProcessingService
+from app.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.repositories.evaluacion import EvaluacionRepository
 from tests.fixtures.factories import make_documento
@@ -60,6 +64,15 @@ def _make_successful_result() -> ParseResult:
             profesor_codigo="P000099",
             periodo="C2 2025",
             recinto="TODOS",
+        ),
+        periodo_data=PeriodoData(
+            periodo_raw="C2 2025",
+            periodo_normalizado="C2 2025",
+            modalidad="CUATRIMESTRAL",
+            año=2025,
+            periodo_orden=2,
+            prefijo="C",
+            numero=2,
         ),
         dimensiones=[dim],
         resumen_pct=ResumenPorcentajes(
@@ -234,3 +247,72 @@ class TestProcessingServiceEdgeCases:
 
         await db.refresh(doc)
         assert doc.estado == "procesado"
+
+
+@pytest.mark.asyncio
+class TestProcessingServiceMateriaField:
+    """Verify the materia field is populated from the first course."""
+
+    async def test_materia_populated_from_first_course(self, db, fake_storage):
+        doc = await _setup_document(db, fake_storage)
+
+        with patch(PARSER_PATH, return_value=_make_successful_result()):
+            svc = ProcessingService(db, fake_storage)
+            await svc.process_document(doc.id)
+
+        eval_repo = EvaluacionRepository(db)
+        evals = await eval_repo.list_by_documento(doc.id)
+        assert evals[0].materia == "Fundamentos de Programación"
+
+
+@pytest.mark.asyncio
+class TestProcessingServiceCommentLength:
+    """Verify that oversized comments are skipped."""
+
+    @staticmethod
+    def _make_result_with_comment(text: str) -> ParseResult:
+        """Build a ParseResult containing a single comment section."""
+        base = _make_successful_result()
+        data_with_comments = base.data.model_copy(
+            update={
+                "secciones_comentarios": [
+                    SeccionComentarios(
+                        tipo_evaluacion="Estudiante",
+                        asignatura="PROGRAMACION I",
+                        comentarios=[Comentario(fortaleza=text)],
+                    )
+                ]
+            }
+        )
+        return ParseResult(
+            success=True,
+            data=data_with_comments,
+            metadata=base.metadata,
+        )
+
+    async def test_normal_comment_is_persisted(self, db, fake_storage):
+        doc = await _setup_document(db, fake_storage)
+        result = self._make_result_with_comment("Buen profesor")
+
+        with patch(PARSER_PATH, return_value=result):
+            svc = ProcessingService(db, fake_storage)
+            await svc.process_document(doc.id)
+
+        from sqlalchemy import select
+
+        rows = (await db.execute(select(ComentarioAnalisis))).scalars().all()
+        assert len(rows) == 1
+        assert rows[0].texto == "Buen profesor"
+
+    async def test_oversized_comment_is_skipped(self, db, fake_storage):
+        doc = await _setup_document(db, fake_storage)
+        result = self._make_result_with_comment("x" * 10_001)
+
+        with patch(PARSER_PATH, return_value=result):
+            svc = ProcessingService(db, fake_storage)
+            await svc.process_document(doc.id)
+
+        from sqlalchemy import select
+
+        rows = (await db.execute(select(ComentarioAnalisis))).scalars().all()
+        assert len(rows) == 0

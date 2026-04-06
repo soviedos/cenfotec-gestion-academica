@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from sqlalchemy import Float, String, func, literal_column, select
+from sqlalchemy import JSON, Float, String, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.comentario_analisis import ComentarioAnalisis
@@ -28,6 +28,15 @@ class QualitativeRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+    @staticmethod
+    def _recinto_col():
+        """Column expression for ``datos_completos -> 'header' -> 'recinto'``.
+
+        Uses SQLAlchemy's JSON type operations so the query is
+        dialect-portable (PostgreSQL JSONB).
+        """
+        return cast(Evaluacion.datos_completos, JSON)["header"]["recinto"].as_string()
+
     # ── Helpers ──────────────────────────────────────────────────────
 
     def _base_query(
@@ -37,6 +46,7 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
         sentimiento: str | None = None,
@@ -44,19 +54,16 @@ class QualitativeRepository:
         """Build a filtered base select on ComentarioAnalisis."""
         stmt = select(ComentarioAnalisis)
 
-        if periodo or docente or escuela:
-            stmt = stmt.join(
-                Evaluacion, ComentarioAnalisis.evaluacion_id == Evaluacion.id
-            )
+        if periodo or docente or escuela or modalidad:
+            stmt = stmt.join(Evaluacion, ComentarioAnalisis.evaluacion_id == Evaluacion.id)
             if periodo:
                 stmt = stmt.where(Evaluacion.periodo == periodo)
             if docente:
                 stmt = stmt.where(Evaluacion.docente_nombre == docente)
             if escuela:
-                stmt = stmt.where(
-                    literal_column("evaluaciones.datos_completos::jsonb->'header'->>'recinto'")
-                    .ilike(f"%{escuela}%")
-                )
+                stmt = stmt.where(self._recinto_col().ilike(f"%{escuela}%"))
+            if modalidad:
+                stmt = stmt.where(Evaluacion.modalidad == modalidad)
 
         if asignatura:
             stmt = stmt.where(ComentarioAnalisis.asignatura == asignatura)
@@ -93,24 +100,17 @@ class QualitativeRepository:
 
         # Asignaturas
         a_stmt = (
-            select(ComentarioAnalisis.asignatura)
-            .distinct()
-            .order_by(ComentarioAnalisis.asignatura)
+            select(ComentarioAnalisis.asignatura).distinct().order_by(ComentarioAnalisis.asignatura)
         )
         asignaturas = [r[0] for r in (await self.session.execute(a_stmt)).all()]
 
         # Escuelas (from datos_completos JSON -> header.recinto)
+        recinto = self._recinto_col()
         e_stmt = (
-            select(
-                func.replace(
-                    literal_column("evaluaciones.datos_completos::jsonb->'header'->>'recinto'"),
-                    "TODOS, ",
-                    "",
-                ).label("escuela")
-            )
+            select(func.replace(recinto, "TODOS, ", "").label("escuela"))
             .select_from(Evaluacion)
             .join(ComentarioAnalisis, ComentarioAnalisis.evaluacion_id == Evaluacion.id)
-            .where(literal_column("evaluaciones.datos_completos::jsonb->'header'->>'recinto'").isnot(None))
+            .where(recinto.isnot(None))
             .distinct()
         )
         escuelas = sorted([r[0] for r in (await self.session.execute(e_stmt)).all() if r[0]])
@@ -129,11 +129,15 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
     ) -> dict:
         """Return qualitative summary metrics."""
         base = self._base_query(
-            periodo=periodo, docente=docente,
-            asignatura=asignatura, escuela=escuela,
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
         ).subquery()
 
         total_stmt = select(func.count(base.c.id))
@@ -183,17 +187,12 @@ class QualitativeRepository:
         tema_rows = (await self.session.execute(tema_stmt)).all()
 
         # sentimiento promedio
-        avg_stmt = select(
-            func.avg(base.c.sent_score.cast(Float))
-        )
+        avg_stmt = select(func.avg(base.c.sent_score.cast(Float)))
         avg_sent = (await self.session.execute(avg_stmt)).scalar()
 
         return {
             "total_comentarios": total,
-            "por_tipo": [
-                {"tipo": r.tipo, "count": r.count}
-                for r in tipo_rows
-            ],
+            "por_tipo": [{"tipo": r.tipo, "count": r.count} for r in tipo_rows],
             "por_sentimiento": [
                 {
                     "sentimiento": r.sentimiento or "sin_clasificar",
@@ -222,6 +221,7 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
         sentimiento: str | None = None,
@@ -235,6 +235,7 @@ class QualitativeRepository:
                 docente=docente,
                 asignatura=asignatura,
                 escuela=escuela,
+                modalidad=modalidad,
                 tipo=tipo,
                 tema=tema,
                 sentimiento=sentimiento,
@@ -253,6 +254,7 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
         sentimiento: str | None = None,
@@ -263,6 +265,7 @@ class QualitativeRepository:
             docente=docente,
             asignatura=asignatura,
             escuela=escuela,
+            modalidad=modalidad,
             tipo=tipo,
             tema=tema,
             sentimiento=sentimiento,
@@ -279,11 +282,17 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
     ) -> list[dict]:
         """Return comment count per tema."""
         sub = self._base_query(
-            periodo=periodo, docente=docente, asignatura=asignatura, escuela=escuela, tipo=tipo
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
         ).subquery()
 
         total_stmt = select(func.count(sub.c.id))
@@ -318,14 +327,19 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         tema: str | None = None,
     ) -> list[dict]:
         """Return comment count per sentimiento."""
         sub = self._base_query(
-            periodo=periodo, docente=docente,
-            asignatura=asignatura, escuela=escuela,
-            tipo=tipo, tema=tema,
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
+            tema=tema,
         ).subquery()
 
         total_stmt = select(func.count(sub.c.id))
@@ -360,15 +374,27 @@ class QualitativeRepository:
         docente: str | None = None,
         asignatura: str | None = None,
         escuela: str | None = None,
+        modalidad: str | None = None,
         tipo: str | None = None,
         top_n: int = 60,
     ) -> list[dict]:
-        """Return word frequencies from comment texts."""
+        """Return word frequencies from comment texts.
+
+        Only the most recent ``_MAX_TEXTS`` comments are loaded into
+        memory to prevent OOM with large datasets.
+        """
+        max_texts = 2000
+
         sub = self._base_query(
-            periodo=periodo, docente=docente, asignatura=asignatura, escuela=escuela, tipo=tipo
+            periodo=periodo,
+            docente=docente,
+            asignatura=asignatura,
+            escuela=escuela,
+            modalidad=modalidad,
+            tipo=tipo,
         ).subquery()
 
-        stmt = select(sub.c.texto)
+        stmt = select(sub.c.texto).order_by(sub.c.created_at.desc()).limit(max_texts)
         rows = (await self.session.execute(stmt)).all()
 
         counter: Counter[str] = Counter()
@@ -376,7 +402,4 @@ class QualitativeRepository:
             words = _WORD_RE.findall(texto.lower())
             counter.update(w for w in words if w not in _STOPWORDS)
 
-        return [
-            {"text": word, "value": count}
-            for word, count in counter.most_common(top_n)
-        ]
+        return [{"text": word, "value": count} for word, count in counter.most_common(top_n)]

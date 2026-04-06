@@ -15,13 +15,14 @@ type RequestOptions = {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 };
 
 async function request<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, headers = {} } = options;
+  const { method = "GET", body, headers = {}, signal } = options;
 
   const config: RequestInit = {
     method,
@@ -29,6 +30,7 @@ async function request<T>(
       "Content-Type": "application/json",
       ...headers,
     },
+    signal,
   };
 
   if (body) {
@@ -45,13 +47,18 @@ async function request<T>(
   return response.json();
 }
 
-async function uploadFile<T>(endpoint: string, file: File): Promise<T> {
+async function uploadFile<T>(
+  endpoint: string,
+  file: File,
+  signal?: AbortSignal,
+): Promise<T> {
   const formData = new FormData();
   formData.append("file", file);
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
     body: formData,
+    signal,
   });
 
   if (!response.ok) {
@@ -63,15 +70,18 @@ async function uploadFile<T>(endpoint: string, file: File): Promise<T> {
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string) => request<T>(endpoint),
-  post: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, { method: "POST", body }),
-  put: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, { method: "PUT", body }),
-  patch: <T>(endpoint: string, body: unknown) =>
-    request<T>(endpoint, { method: "PATCH", body }),
-  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
-  upload: <T>(endpoint: string, file: File) => uploadFile<T>(endpoint, file),
+  get: <T>(endpoint: string, signal?: AbortSignal) =>
+    request<T>(endpoint, { signal }),
+  post: <T>(endpoint: string, body: unknown, signal?: AbortSignal) =>
+    request<T>(endpoint, { method: "POST", body, signal }),
+  put: <T>(endpoint: string, body: unknown, signal?: AbortSignal) =>
+    request<T>(endpoint, { method: "PUT", body, signal }),
+  patch: <T>(endpoint: string, body: unknown, signal?: AbortSignal) =>
+    request<T>(endpoint, { method: "PATCH", body, signal }),
+  delete: <T>(endpoint: string, signal?: AbortSignal) =>
+    request<T>(endpoint, { method: "DELETE", signal }),
+  upload: <T>(endpoint: string, file: File, signal?: AbortSignal) =>
+    uploadFile<T>(endpoint, file, signal),
 };
 
 export { ApiClientError };

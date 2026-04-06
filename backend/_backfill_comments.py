@@ -7,6 +7,7 @@ datos_completos JSON so future reads include the comment data.
 
 Run once:  .venv/bin/python _backfill_comments.py
 """
+
 import asyncio
 import json
 import logging
@@ -58,10 +59,7 @@ async def backfill():
             for eval_id, datos_str, storage_path in batch:
                 # Skip if already backfilled
                 r = await s.execute(
-                    sa.text(
-                        "SELECT count(*) FROM comentario_analisis "
-                        "WHERE evaluacion_id = :eid"
-                    ),
+                    sa.text("SELECT count(*) FROM comentario_analisis WHERE evaluacion_id = :eid"),
                     {"eid": eval_id},
                 )
                 if r.scalar() > 0:
@@ -125,14 +123,10 @@ async def backfill():
                         ]
                         await s.execute(
                             sa.text(
-                                "UPDATE evaluaciones "
-                                "SET datos_completos = :json "
-                                "WHERE id = :eid"
+                                "UPDATE evaluaciones SET datos_completos = :json WHERE id = :eid"
                             ),
                             {
-                                "json": json.dumps(
-                                    datos, ensure_ascii=False
-                                ),
+                                "json": json.dumps(datos, ensure_ascii=False),
                                 "eid": eval_id,
                             },
                         )
@@ -150,7 +144,9 @@ async def backfill():
 
     log.info(
         "Done. Inserted: %d  Skipped (existing): %d  Errors: %d",
-        total_comments, skipped, errors,
+        total_comments,
+        skipped,
+        errors,
     )
 
     async with async_session_factory() as s:

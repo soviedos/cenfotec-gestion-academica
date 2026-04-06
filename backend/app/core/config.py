@@ -1,3 +1,4 @@
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "info"
     debug: bool = False
-    secret_key: str = "change-this-in-production"
+    secret_key: SecretStr = SecretStr("change-this-in-production")
     allowed_origins: str = "http://localhost:3000"
 
     # Database
@@ -27,14 +28,30 @@ class Settings(BaseSettings):
     # MinIO
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minio_admin"
-    minio_secret_key: str = "minio_pass_dev"
+    minio_secret_key: SecretStr = SecretStr("minio_pass_dev")
     minio_bucket: str = "evaluaciones"
     minio_secure: bool = False
 
     # Gemini
-    gemini_api_key: str = ""
+    gemini_api_key: SecretStr = SecretStr("")
 
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @model_validator(mode="after")
+    def _check_production_secrets(self) -> "Settings":
+        if self.environment not in ("development", "testing"):
+            if self.secret_key.get_secret_value() == "change-this-in-production":
+                raise ValueError(
+                    "SECRET_KEY must be changed from the default in non-development environments"
+                )
+            if self.minio_secret_key.get_secret_value() == "minio_pass_dev":
+                raise ValueError(
+                    "MINIO_SECRET_KEY must be changed from"
+                    " the default in non-development environments"
+                )
+            if not self.minio_secure:
+                raise ValueError("MINIO_SECURE must be True in non-development environments")
+        return self
 
     @property
     def is_development(self) -> bool:

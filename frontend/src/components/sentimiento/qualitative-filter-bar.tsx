@@ -57,7 +57,10 @@ const TEMAS = Object.entries(TEMA_LABELS).map(([k, v]) => ({
   label: v,
 }));
 
-const ALL_VALUE = "__all__";
+const ALL_ESCUELAS = "Todas las escuelas";
+const ALL_PERIODOS = "Todos los períodos";
+const ALL_DOCENTES = "Todos los docentes";
+const ALL_ASIGNATURAS = "Todas las asignaturas";
 
 export function QualitativeFilterBar({
   periodo,
@@ -80,11 +83,18 @@ export function QualitativeFilterBar({
   onSentimientoChange,
   onClear,
 }: QualitativeFilterBarProps) {
-  const hasFilters = periodo || docente || asignatura || escuela || tipo || tema || sentimiento;
+  const hasFilters =
+    periodo || docente || asignatura || escuela || tipo || tema || sentimiento;
 
-  const activeCount = [periodo, docente, asignatura, escuela, tipo, tema, sentimiento].filter(
-    Boolean,
-  ).length;
+  const activeCount = [
+    periodo,
+    docente,
+    asignatura,
+    escuela,
+    tipo,
+    tema,
+    sentimiento,
+  ].filter(Boolean).length;
 
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -98,7 +108,8 @@ export function QualitativeFilterBar({
               Seleccione los criterios para refinar los resultados
               {activeCount > 0 && (
                 <span className="ml-1 font-medium text-primary">
-                  · {activeCount} filtro{activeCount > 1 ? "s" : ""} activo{activeCount > 1 ? "s" : ""}
+                  · {activeCount} filtro{activeCount > 1 ? "s" : ""} activo
+                  {activeCount > 1 ? "s" : ""}
                 </span>
               )}
             </p>
@@ -122,14 +133,16 @@ export function QualitativeFilterBar({
           <div className="flex items-center gap-1.5">
             <Building2 className="size-4 text-muted-foreground" />
             <Select
-              value={escuela ?? ALL_VALUE}
-              onValueChange={(v) => onEscuelaChange(!v || v === ALL_VALUE ? undefined : v)}
+              value={escuela ?? ALL_ESCUELAS}
+              onValueChange={(v) =>
+                onEscuelaChange(!v || v === ALL_ESCUELAS ? undefined : v)
+              }
             >
-              <SelectTrigger size="sm" className="min-w-[240px]">
-                <SelectValue placeholder="Escuela" />
+              <SelectTrigger size="sm" className="min-w-60">
+                <SelectValue placeholder="Todas las escuelas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>Todas las escuelas</SelectItem>
+                <SelectItem value={ALL_ESCUELAS}>Todas las escuelas</SelectItem>
                 {escuelas.map((e) => (
                   <SelectItem key={e} value={e}>
                     {e}
@@ -143,14 +156,16 @@ export function QualitativeFilterBar({
           <div className="flex items-center gap-1.5">
             <CalendarDays className="size-4 text-muted-foreground" />
             <Select
-              value={periodo ?? ALL_VALUE}
-              onValueChange={(v) => onPeriodoChange(!v || v === ALL_VALUE ? undefined : v)}
+              value={periodo ?? ALL_PERIODOS}
+              onValueChange={(v) =>
+                onPeriodoChange(!v || v === ALL_PERIODOS ? undefined : v)
+              }
             >
-              <SelectTrigger size="sm" className="min-w-[160px]">
-                <SelectValue placeholder="Período" />
+              <SelectTrigger size="sm" className="min-w-40">
+                <SelectValue placeholder="Todos los períodos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>Todos los períodos</SelectItem>
+                <SelectItem value={ALL_PERIODOS}>Todos los períodos</SelectItem>
                 {periodos.map((p) => (
                   <SelectItem key={p} value={p}>
                     {p}
@@ -164,14 +179,16 @@ export function QualitativeFilterBar({
           <div className="flex items-center gap-1.5">
             <User className="size-4 text-muted-foreground" />
             <Select
-              value={docente ?? ALL_VALUE}
-              onValueChange={(v) => onDocenteChange(!v || v === ALL_VALUE ? undefined : v)}
+              value={docente ?? ALL_DOCENTES}
+              onValueChange={(v) =>
+                onDocenteChange(!v || v === ALL_DOCENTES ? undefined : v)
+              }
             >
-              <SelectTrigger size="sm" className="min-w-[363px]">
-                <SelectValue placeholder="Docente" />
+              <SelectTrigger size="sm" className="min-w-91">
+                <SelectValue placeholder="Todos los docentes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>Todos los docentes</SelectItem>
+                <SelectItem value={ALL_DOCENTES}>Todos los docentes</SelectItem>
                 {docentes.map((d) => (
                   <SelectItem key={d} value={d}>
                     {d}
@@ -185,14 +202,18 @@ export function QualitativeFilterBar({
           <div className="flex items-center gap-1.5">
             <GraduationCap className="size-4 text-muted-foreground" />
             <Select
-              value={asignatura ?? ALL_VALUE}
-              onValueChange={(v) => onAsignaturaChange(!v || v === ALL_VALUE ? undefined : v)}
+              value={asignatura ?? ALL_ASIGNATURAS}
+              onValueChange={(v) =>
+                onAsignaturaChange(!v || v === ALL_ASIGNATURAS ? undefined : v)
+              }
             >
-              <SelectTrigger size="sm" className="min-w-[330px]">
-                <SelectValue placeholder="Asignatura" />
+              <SelectTrigger size="sm" className="min-w-83">
+                <SelectValue placeholder="Todas las asignaturas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>Todas las asignaturas</SelectItem>
+                <SelectItem value={ALL_ASIGNATURAS}>
+                  Todas las asignaturas
+                </SelectItem>
                 {asignaturas.map((a) => (
                   <SelectItem key={a} value={a}>
                     {a}
@@ -212,7 +233,9 @@ export function QualitativeFilterBar({
               key={t.value}
               variant={tipo === t.value ? "default" : "outline"}
               size="sm"
-              onClick={() => onTipoChange(tipo === t.value ? undefined : t.value)}
+              onClick={() =>
+                onTipoChange(tipo === t.value ? undefined : t.value)
+              }
             >
               {t.label}
             </Button>
@@ -221,7 +244,9 @@ export function QualitativeFilterBar({
 
         {/* Sentimiento */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="ml-6 text-sm text-muted-foreground">Sentimiento:</span>
+          <span className="ml-6 text-sm text-muted-foreground">
+            Sentimiento:
+          </span>
           {SENTIMIENTOS.map((s) => (
             <Button
               key={s.value}
@@ -246,7 +271,9 @@ export function QualitativeFilterBar({
               key={t.value}
               variant={tema === t.value ? "default" : "outline"}
               size="sm"
-              onClick={() => onTemaChange(tema === t.value ? undefined : t.value)}
+              onClick={() =>
+                onTemaChange(tema === t.value ? undefined : t.value)
+              }
             >
               {t.label}
             </Button>

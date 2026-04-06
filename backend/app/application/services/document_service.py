@@ -4,7 +4,7 @@ import hashlib
 import uuid
 
 from app.domain.entities.documento import Documento
-from app.domain.exceptions import DuplicateError, ValidationError
+from app.domain.exceptions import DuplicateError, NotFoundError, ValidationError
 from app.domain.schemas.documento import DocumentoFilterParams
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.storage.file_storage import FileStorage
@@ -49,7 +49,11 @@ class DocumentService:
             estado="subido",
             tamano_bytes=len(content),
         )
-        return await self.repo.create(documento)
+        try:
+            return await self.repo.create(documento)
+        except Exception:
+            await self.storage.delete(storage_path)
+            raise
 
     def _validate(self, filename: str, content: bytes, content_type: str) -> None:
         if not content:
@@ -94,3 +98,18 @@ class DocumentService:
             "page": filters.page,
             "page_size": filters.page_size,
         }
+
+    async def delete_document(self, document_id: uuid.UUID) -> None:
+        """Delete a document, its storage file, and all cascaded data."""
+        documento = await self.repo.get_by_id(document_id)
+        if not documento:
+            raise NotFoundError("Documento", str(document_id))
+
+        # Delete file from object storage (best-effort)
+        if self._storage:
+            try:
+                await self.storage.delete(documento.storage_path)
+            except Exception:
+                pass  # Storage cleanup is best-effort; DB cascade is critical
+
+        await self.repo.delete(documento)

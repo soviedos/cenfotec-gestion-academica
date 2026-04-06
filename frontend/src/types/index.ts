@@ -200,3 +200,216 @@ export interface FiltrosCualitativos {
   asignaturas: string[];
   escuelas: string[];
 }
+
+// =============================================
+// Consultas IA (Query)
+// =============================================
+
+export interface QueryFilters {
+  periodo?: string;
+  docente?: string;
+  asignatura?: string;
+  escuela?: string;
+}
+
+export interface QueryRequest {
+  question: string;
+  filters?: QueryFilters;
+}
+
+export interface CommentSource {
+  evaluacion_id: string;
+  docente: string;
+  periodo: string;
+  asignatura: string;
+  fuente: string;
+}
+
+export interface MetricSource {
+  periodo: string | null;
+  docente: string | null;
+}
+
+export interface CommentEvidence {
+  type: "comment";
+  texto: string;
+  source: CommentSource;
+  relevance_score: number | null;
+}
+
+export interface MetricEvidence {
+  type: "metric";
+  label: string;
+  value: number;
+  source: MetricSource;
+}
+
+export type QueryEvidence = CommentEvidence | MetricEvidence;
+
+export interface QueryResponseMetadata {
+  model: string;
+  tokens_used: number;
+  latency_ms: number;
+  audit_log_id: string;
+}
+
+export interface QueryResponse {
+  answer: string;
+  confidence: number | null;
+  evidence: QueryEvidence[];
+  metadata: QueryResponseMetadata;
+}
+
+export interface QueryHistoryEntry {
+  question: string;
+  response: QueryResponse;
+  timestamp: Date;
+}
+
+// =============================================
+// Modalidad [BR-MOD-01]
+// =============================================
+
+export type Modalidad = "CUATRIMESTRAL" | "MENSUAL" | "B2B";
+
+/**
+ * Includes DESCONOCIDA for edge-case handling.
+ * Most UI code should use Modalidad (without DESCONOCIDA).
+ */
+export type ModalidadConDesconocida = Modalidad | "DESCONOCIDA";
+
+// =============================================
+// Severidad [AL-20]
+// =============================================
+
+export type Severidad = "alta" | "media" | "baja";
+
+// =============================================
+// Alert lifecycle [AL-50]
+// =============================================
+
+export type AlertaEstado = "activa" | "revisada" | "resuelta" | "descartada";
+
+// =============================================
+// Tipo de alerta [AL-20–AL-23]
+// =============================================
+
+export type TipoAlerta = "BAJO_DESEMPEÑO" | "CAIDA" | "SENTIMIENTO" | "PATRON";
+
+// =============================================
+// Sentimiento [BR-CLAS-20]
+// =============================================
+
+export type Sentimiento = "positivo" | "negativo" | "mixto" | "neutro";
+
+// =============================================
+// Tema [BR-CLAS-10]
+// =============================================
+
+export type Tema =
+  | "metodologia"
+  | "dominio_tema"
+  | "comunicacion"
+  | "evaluacion"
+  | "puntualidad"
+  | "material"
+  | "actitud"
+  | "tecnologia"
+  | "organizacion"
+  | "otro";
+
+// =============================================
+// Tipo de comentario [BR-CLAS-01]
+// =============================================
+
+export type TipoComentario = "fortaleza" | "mejora" | "observacion";
+
+// =============================================
+// Alertas (real alert system)
+// =============================================
+
+export interface AlertaResponse {
+  id: string;
+  evaluacion_id: string | null;
+  docente_nombre: string;
+  curso: string;
+  periodo: string;
+  modalidad: Modalidad;
+  tipo_alerta: TipoAlerta;
+  metrica_afectada: string;
+  valor_actual: number;
+  valor_anterior: number | null;
+  descripcion: string;
+  severidad: Severidad;
+  estado: AlertaEstado;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertaSummary {
+  total_activas: number;
+  por_severidad: Record<string, number>;
+  por_tipo: Record<string, number>;
+  por_modalidad: Record<string, number>;
+  docentes_afectados: number;
+}
+
+export interface AlertFilters {
+  modalidad?: string;
+  anio?: number;
+  periodo?: string;
+  severidad?: string;
+  estado?: string;
+  docente?: string;
+  curso?: string;
+  tipo_alerta?: string;
+  page?: number;
+  page_size?: number;
+}
+
+// =============================================
+// Executive Dashboard
+// =============================================
+
+export interface DashboardKpis {
+  documentos_procesados: number;
+  docentes_evaluados: number;
+  promedio_general: number;
+  alertas_criticas: number;
+}
+
+export interface AlertaDocente {
+  docente_nombre: string;
+  promedio: number;
+  evaluaciones_count: number;
+  motivo: string;
+}
+
+export interface DocenteResumen {
+  posicion: number;
+  docente_nombre: string;
+  promedio: number;
+  evaluaciones_count: number;
+}
+
+export interface InsightItem {
+  icono: string;
+  texto: string;
+}
+
+export interface ActividadReciente {
+  documento_nombre: string;
+  estado: string;
+  evaluaciones_extraidas: number;
+  fecha: string;
+}
+
+export interface DashboardSummary {
+  kpis: DashboardKpis;
+  alertas: AlertaDocente[];
+  tendencia: PeriodoMetrica[];
+  top_docentes: DocenteResumen[];
+  bottom_docentes: DocenteResumen[];
+  insights: InsightItem[];
+  actividad_reciente: ActividadReciente[];
+}

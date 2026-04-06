@@ -32,3 +32,31 @@ class ValidationError(DomainError):
 
     def __init__(self, detail: str = "Error de validación"):
         super().__init__(detail)
+
+
+class GeminiError(DomainError):
+    """Base error for Gemini API interactions."""
+
+    def __init__(self, detail: str = "Error en servicio Gemini"):
+        super().__init__(detail)
+
+
+class GeminiTimeoutError(GeminiError):
+    """Gemini API call exceeded the configured timeout."""
+
+    def __init__(self, detail: str = "Tiempo de espera agotado en Gemini"):
+        super().__init__(detail)
+
+
+class GeminiRateLimitError(GeminiError):
+    """Gemini API rate limit exceeded."""
+
+    def __init__(self, detail: str = "Límite de solicitudes de Gemini excedido"):
+        super().__init__(detail)
+
+
+class GeminiUnavailableError(GeminiError):
+    """Gemini API key not configured or service unreachable."""
+
+    def __init__(self, detail: str = "Servicio Gemini no disponible"):
+        super().__init__(detail)

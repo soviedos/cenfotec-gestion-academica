@@ -93,6 +93,14 @@ migration:
 	cd backend && python -m alembic -c app/infrastructure/database/migrations/alembic.ini revision --autogenerate -m "$$name"
 
 # ============================
+# Mantenimiento
+# ============================
+
+## Backfill comentarios desde PDFs en MinIO (ejecutar una sola vez)
+backfill-comments:
+	cd backend && python _backfill_comments.py
+
+# ============================
 # Limpieza
 # ============================
 

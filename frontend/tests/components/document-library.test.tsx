@@ -7,6 +7,8 @@ import type { Documento, PaginatedResponse } from "@/types";
 // Mock the API module
 vi.mock("@/lib/api/documents", () => ({
   listDocuments: vi.fn(),
+  listPeriodos: vi.fn().mockResolvedValue([]),
+  deleteDocument: vi.fn(),
 }));
 
 import { listDocuments } from "@/lib/api/documents";
@@ -68,10 +70,10 @@ describe("DocumentLibrary", () => {
 
   it("shows total count badge", async () => {
     mockListDocuments.mockResolvedValue(
-      makeResponse(
-        [{ nombre_archivo: "doc.pdf" }],
-        { total: 42, total_pages: 3 },
-      ),
+      makeResponse([{ nombre_archivo: "doc.pdf" }], {
+        total: 42,
+        total_pages: 3,
+      }),
     );
 
     render(<DocumentLibrary />);
@@ -101,7 +103,9 @@ describe("DocumentLibrary", () => {
     render(<DocumentLibrary />);
 
     await waitFor(() => {
-      expect(screen.getByText("No se encontraron documentos")).toBeInTheDocument();
+      expect(
+        screen.getByText("No se encontraron documentos"),
+      ).toBeInTheDocument();
     });
   });
 
@@ -111,7 +115,9 @@ describe("DocumentLibrary", () => {
     render(<DocumentLibrary />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Buscar por nombre de archivo")).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Buscar por nombre de archivo"),
+      ).toBeInTheDocument();
     });
     expect(screen.getByLabelText("Filtrar por docente")).toBeInTheDocument();
     expect(screen.getByLabelText("Filtrar por estado")).toBeInTheDocument();
@@ -119,16 +125,20 @@ describe("DocumentLibrary", () => {
 
   it("renders pagination", async () => {
     mockListDocuments.mockResolvedValue(
-      makeResponse(
-        [{ nombre_archivo: "doc.pdf" }],
-        { total: 50, page: 1, page_size: 20, total_pages: 3 },
-      ),
+      makeResponse([{ nombre_archivo: "doc.pdf" }], {
+        total: 50,
+        page: 1,
+        page_size: 20,
+        total_pages: 3,
+      }),
     );
 
     render(<DocumentLibrary />);
 
     await waitFor(() => {
-      expect(screen.getByRole("navigation", { name: "Paginación" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("navigation", { name: "Paginación" }),
+      ).toBeInTheDocument();
     });
   });
 

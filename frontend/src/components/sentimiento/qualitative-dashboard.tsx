@@ -1,12 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  MessageSquare,
-  ThumbsUp,
-  ThumbsDown,
-  TrendingUp,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { MessageSquare, ThumbsUp, ThumbsDown, TrendingUp } from "lucide-react";
 import { useQualitative } from "@/hooks/use-qualitative";
 import type { QualitativeFilters } from "@/hooks/use-qualitative";
 import { fetchFiltrosCualitativos } from "@/lib/api/qualitative";
@@ -32,20 +27,35 @@ export function QualitativeDashboard() {
   });
 
   useEffect(() => {
-    fetchFiltrosCualitativos().then(setFilterOptions).catch(() => {});
+    fetchFiltrosCualitativos()
+      .then(setFilterOptions)
+      .catch((err) => {
+        console.error("Error al cargar filtros cualitativos", err);
+      });
   }, []);
 
-  const { resumen, comentarios, temas, sentimientos, isLoading, error, isEmpty, refetch } =
-    useQualitative(filters);
+  const {
+    resumen,
+    comentarios,
+    temas,
+    sentimientos,
+    isLoading,
+    error,
+    isEmpty,
+    refetch,
+  } = useQualitative(filters);
 
-  const updateFilter = <K extends keyof QualitativeFilters>(
-    key: K,
-    value: QualitativeFilters[K],
-  ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+  const updateFilter = useCallback(
+    <K extends keyof QualitativeFilters>(
+      key: K,
+      value: QualitativeFilters[K],
+    ) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
 
-  const clearFilters = () => setFilters({});
+  const clearFilters = useCallback(() => setFilters({}), []);
 
   if (isLoading && !resumen) {
     return <QualitativeSkeleton />;
@@ -56,15 +66,42 @@ export function QualitativeDashboard() {
   }
 
   if (isEmpty) {
-    return <QualitativeEmpty />;
+    return (
+      <div className="space-y-6">
+        <QualitativeFilterBar
+          periodo={filters.periodo}
+          docente={filters.docente}
+          asignatura={filters.asignatura}
+          escuela={filters.escuela}
+          tipo={filters.tipo}
+          tema={filters.tema}
+          sentimiento={filters.sentimiento}
+          periodos={filterOptions.periodos}
+          docentes={filterOptions.docentes}
+          asignaturas={filterOptions.asignaturas}
+          escuelas={filterOptions.escuelas}
+          onPeriodoChange={(v) => updateFilter("periodo", v)}
+          onDocenteChange={(v) => updateFilter("docente", v)}
+          onAsignaturaChange={(v) => updateFilter("asignatura", v)}
+          onEscuelaChange={(v) => updateFilter("escuela", v)}
+          onTipoChange={(v) => updateFilter("tipo", v)}
+          onTemaChange={(v) => updateFilter("tema", v)}
+          onSentimientoChange={(v) => updateFilter("sentimiento", v)}
+          onClear={clearFilters}
+        />
+        <QualitativeEmpty />
+      </div>
+    );
   }
 
   // Compute KPI values from resumen
   const totalComentarios = resumen?.total_comentarios ?? 0;
   const positivos =
-    resumen?.por_sentimiento.find((s) => s.sentimiento === "positivo")?.count ?? 0;
+    resumen?.por_sentimiento.find((s) => s.sentimiento === "positivo")?.count ??
+    0;
   const negativos =
-    resumen?.por_sentimiento.find((s) => s.sentimiento === "negativo")?.count ?? 0;
+    resumen?.por_sentimiento.find((s) => s.sentimiento === "negativo")?.count ??
+    0;
   const sentimientoPromedio = resumen?.sentimiento_promedio;
 
   return (

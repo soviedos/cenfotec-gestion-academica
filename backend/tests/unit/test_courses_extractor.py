@@ -11,8 +11,14 @@ from app.application.parsing.extractors.courses import (
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 COURSE_HEADER = [
-    "Código\nasignatura", "Nombre asignatura", "Total\nestudiantes",
-    "Grupo", "Estudiante", "Director", "Autoevaluación\n(docente)", "Promedio\ngeneral",
+    "Código\nasignatura",
+    "Nombre asignatura",
+    "Total\nestudiantes",
+    "Grupo",
+    "Estudiante",
+    "Director",
+    "Autoevaluación\n(docente)",
+    "Promedio\ngeneral",
 ]
 
 
@@ -20,10 +26,26 @@ def _make_course_table(escuela: str = "ESC ING DEL SOFTWARE"):
     return [
         [escuela, None, None, None, None, None, None, None],
         COURSE_HEADER,
-        ["INF-02", "Fundamentos de\nProgramación", "13 / 15", "SCV0",
-         "92.75", "100.00", "82.60", "91.78"],
-        ["INF-03", "Fundamentos de\nBases de Datos", "17 / 19", "SCV1",
-         "94.94", "100.00", "81.20", "92.05"],
+        [
+            "XA-02",
+            "Fundamentos de\nProgramación",
+            "13 / 15",
+            "SCV0",
+            "92.75",
+            "100.00",
+            "82.60",
+            "91.78",
+        ],
+        [
+            "XA-03",
+            "Fundamentos de\nBases de Datos",
+            "17 / 19",
+            "SCV1",
+            "94.94",
+            "100.00",
+            "81.20",
+            "92.05",
+        ],
         # Subtotal row
         [None, None, "54 / 62", None, "93.99", "100.00", "81.95", "91.98"],
     ]
@@ -72,8 +94,8 @@ class TestExtractCourses:
         cursos, total_resp, total_mat = extract_courses([table])
 
         assert len(cursos) == 2
-        assert cursos[0].codigo == "INF-02"
-        assert cursos[0].nombre == "Fundamentos de\nProgramación"
+        assert cursos[0].codigo == "XA-02"
+        assert cursos[0].nombre == "Fundamentos de Programación"
         assert cursos[0].estudiantes_respondieron == 13
         assert cursos[0].estudiantes_matriculados == 15
         assert cursos[0].grupo == "SCV0"
@@ -84,15 +106,23 @@ class TestExtractCourses:
         table = _make_course_table()
         _, total_resp, total_mat = extract_courses([table])
         assert total_resp == 30  # 13 + 17
-        assert total_mat == 34   # 15 + 19
+        assert total_mat == 34  # 15 + 19
 
     def test_multiple_school_tables(self):
         t1 = _make_course_table("ESC ING DEL SOFTWARE")
         t2 = [
             ["ESC SIST DE INFORMACIÓN", None, None, None, None, None, None, None],
             COURSE_HEADER,
-            ["COMP-01", "Procesos\nEmpresariales", "18 / 19", "NCV2",
-             "93.50", "100.00", "81.40", "91.63"],
+            [
+                "XB-01",
+                "Procesos\nEmpresariales",
+                "18 / 19",
+                "NCV2",
+                "93.50",
+                "100.00",
+                "81.40",
+                "91.63",
+            ],
         ]
         cursos, _, _ = extract_courses([t1, t2])
         assert len(cursos) == 3

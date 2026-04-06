@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from app.application.parsing.schemas import ParsedEvaluacion
 
-Stage = Literal["open", "header", "metricas", "cursos", "comentarios", "validation"]
+Stage = Literal["open", "header", "periodo", "metricas", "cursos", "comentarios", "validation"]
 
 
 @dataclass(frozen=True)
