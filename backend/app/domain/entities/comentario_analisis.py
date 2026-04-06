@@ -1,7 +1,7 @@
 """ComentarioAnalisis entity — one row per classified comment."""
 
 from sqlalchemy import Boolean, ForeignKey, Numeric, String, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.entities.base import Base, TimestampMixin, UUIDMixin
 
@@ -21,3 +21,6 @@ class ComentarioAnalisis(UUIDMixin, TimestampMixin, Base):
     sentimiento: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
     sent_score: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     procesado_ia: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # ── Relationships ───────────────────────────────────────────────────
+    evaluacion = relationship("Evaluacion", back_populates="comentarios")

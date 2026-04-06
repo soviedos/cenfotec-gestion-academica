@@ -1,9 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-import { ArrowUpDown, FileText } from "lucide-react";
+import { ArrowUpDown, Copy, Check, FileText, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Documento, DocumentoEstado } from "@/types";
 
 const columnHelper = createColumnHelper<Documento>();
@@ -27,7 +45,10 @@ function formatDate(dateStr: string): string {
 
 const estadoConfig: Record<
   DocumentoEstado,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
 > = {
   subido: { label: "Subido", variant: "secondary" },
   procesando: { label: "Procesando", variant: "default" },
@@ -81,17 +102,96 @@ function SortableHeader({
   );
 }
 
+function CopyableSha({ sha }: { sha: string }) {
+  const [copied, setCopied] = useState(false);
+  const short = sha.slice(0, 12);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(sha);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={`Copiar SHA: ${sha}`}
+          >
+            {short}…
+            {copied ? (
+              <Check className="h-3 w-3 text-green-500" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="font-mono text-xs">
+          {sha}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function DeleteButton({
+  documento,
+  onDelete,
+}: {
+  documento: Documento;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          aria-label={`Eliminar ${documento.nombre_archivo}`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará permanentemente{" "}
+            <span className="font-medium text-foreground">
+              {documento.nombre_archivo}
+            </span>{" "}
+            junto con todas sus evaluaciones, dimensiones, cursos y comentarios
+            asociados. Esta acción no se puede deshacer.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => onDelete(documento.id)}
+            className="bg-destructive text-white hover:bg-destructive/90"
+          >
+            Eliminar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function getColumns(
   sortBy: string,
   sortOrder: string,
   onSort: (field: string) => void,
+  onDelete?: (id: string) => void,
 ) {
   return [
     columnHelper.display({
       id: "icon",
-      cell: () => (
-        <FileText className="h-4 w-4 text-muted-foreground" />
-      ),
+      cell: () => <FileText className="h-4 w-4 text-muted-foreground" />,
       size: 40,
     }),
     columnHelper.accessor("nombre_archivo", {
@@ -132,6 +232,11 @@ export function getColumns(
       ),
       size: 100,
     }),
+    columnHelper.accessor("hash_sha256", {
+      header: "SHA-256",
+      cell: (info) => <CopyableSha sha={info.getValue()} />,
+      size: 150,
+    }),
     columnHelper.accessor("created_at", {
       header: () => (
         <SortableHeader
@@ -143,9 +248,23 @@ export function getColumns(
         />
       ),
       cell: (info) => (
-        <span className="text-muted-foreground">{formatDate(info.getValue())}</span>
+        <span className="text-muted-foreground">
+          {formatDate(info.getValue())}
+        </span>
       ),
       size: 180,
     }),
+    ...(onDelete
+      ? [
+          columnHelper.display({
+            id: "actions",
+            header: "",
+            cell: (info) => (
+              <DeleteButton documento={info.row.original} onDelete={onDelete} />
+            ),
+            size: 50,
+          }),
+        ]
+      : []),
   ];
 }

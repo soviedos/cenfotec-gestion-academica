@@ -23,6 +23,16 @@ class DocumentoRepository(BaseRepository[Documento]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def delete(self, documento: Documento) -> None:
+        await self.session.delete(documento)
+        await self.session.flush()
+
+    async def distinct_periodos(self) -> list[str]:
+        """Return sorted distinct periodos from evaluaciones."""
+        stmt = select(func.distinct(Evaluacion.periodo)).order_by(Evaluacion.periodo)
+        result = await self.session.execute(stmt)
+        return [row[0] for row in result.all()]
+
     async def list_filtered(
         self,
         *,
@@ -79,7 +89,5 @@ class DocumentoRepository(BaseRepository[Documento]):
                 conditions.append(Evaluacion.docente_nombre.ilike(f"%{docente}%"))
             if periodo:
                 conditions.append(Evaluacion.periodo == periodo)
-            stmt = stmt.where(
-                select(Evaluacion.documento_id).where(*conditions).exists()
-            )
+            stmt = stmt.where(select(Evaluacion.documento_id).where(*conditions).exists())
         return stmt

@@ -2,16 +2,47 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.deps import DbSession
+from app.api.rate_limit import query_rate_limiter
 from app.api.v1.router import api_router
+from app.core.cache import analytics_cache
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
-from app.domain.exceptions import DomainError, DuplicateError, NotFoundError
+from app.domain.exceptions import (
+    DomainError,
+    DuplicateError,
+    GeminiError,
+    GeminiRateLimitError,
+    GeminiTimeoutError,
+    GeminiUnavailableError,
+    NotFoundError,
+)
 
 logger = get_logger(__name__)
+
+
+# ── Security headers middleware ──────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject standard security headers into every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if not settings.is_development:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; frame-ancestors 'none'"
+            )
+        return response
 
 
 @asynccontextmanager
@@ -21,6 +52,9 @@ async def lifespan(app: FastAPI):
         "Starting %s v%s [%s]", settings.app_name, settings.app_version, settings.environment
     )
     yield
+    # Graceful shutdown: close Redis connections
+    await analytics_cache.close()
+    await query_rate_limiter.close()
     logger.info("Shutting down")
 
 
@@ -34,13 +68,15 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.is_development else None,
     )
 
-    # --- Middleware ---
+    # --- Middleware (order matters: last added = first executed) ---
+    application.add_middleware(GZipMiddleware, minimum_size=1000)
+    application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "Accept"],
     )
 
     # --- Exception handlers ---
@@ -51,6 +87,26 @@ def create_app() -> FastAPI:
     @application.exception_handler(DuplicateError)
     async def duplicate_handler(_request: Request, exc: DuplicateError):
         return JSONResponse(status_code=409, content={"detail": exc.detail})
+
+    @application.exception_handler(GeminiUnavailableError)
+    async def gemini_unavailable_handler(_request: Request, exc: GeminiUnavailableError):
+        return JSONResponse(status_code=503, content={"detail": exc.detail})
+
+    @application.exception_handler(GeminiTimeoutError)
+    async def gemini_timeout_handler(_request: Request, exc: GeminiTimeoutError):
+        return JSONResponse(status_code=504, content={"detail": exc.detail})
+
+    @application.exception_handler(GeminiRateLimitError)
+    async def gemini_rate_limit_handler(_request: Request, exc: GeminiRateLimitError):
+        return JSONResponse(
+            status_code=503,
+            content={"detail": exc.detail},
+            headers={"Retry-After": "30"},
+        )
+
+    @application.exception_handler(GeminiError)
+    async def gemini_error_handler(_request: Request, exc: GeminiError):
+        return JSONResponse(status_code=502, content={"detail": exc.detail})
 
     @application.exception_handler(DomainError)
     async def domain_error_handler(_request: Request, exc: DomainError):

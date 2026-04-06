@@ -46,46 +46,63 @@ export function useQualitative(filters: QualitativeFilters = {}) {
   const [state, setState] = useState<QualitativeState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
   const filtersKey = JSON.stringify(filters);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   const fetchAll = useCallback(async () => {
     abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      const f = filtersRef.current;
       const [resumen, comentarios, temas, sentimientos] = await Promise.all([
-        fetchResumenCualitativo({
-          periodo: filters.periodo,
-          docente: filters.docente,
-          asignatura: filters.asignatura,
-          escuela: filters.escuela,
-        }),
-        fetchComentarios({
-          periodo: filters.periodo,
-          docente: filters.docente,
-          asignatura: filters.asignatura,
-          escuela: filters.escuela,
-          tipo: filters.tipo,
-          tema: filters.tema,
-          sentimiento: filters.sentimiento,
-          limit: 50,
-        }),
-        fetchDistribucionTemas({
-          periodo: filters.periodo,
-          docente: filters.docente,
-          asignatura: filters.asignatura,
-          escuela: filters.escuela,
-          tipo: filters.tipo,
-        }),
-        fetchDistribucionSentimiento({
-          periodo: filters.periodo,
-          docente: filters.docente,
-          asignatura: filters.asignatura,
-          escuela: filters.escuela,
-          tipo: filters.tipo,
-          tema: filters.tema,
-        }),
+        fetchResumenCualitativo(
+          {
+            periodo: f.periodo,
+            docente: f.docente,
+            asignatura: f.asignatura,
+            escuela: f.escuela,
+          },
+          signal,
+        ),
+        fetchComentarios(
+          {
+            periodo: f.periodo,
+            docente: f.docente,
+            asignatura: f.asignatura,
+            escuela: f.escuela,
+            tipo: f.tipo,
+            tema: f.tema,
+            sentimiento: f.sentimiento,
+            limit: 50,
+          },
+          signal,
+        ),
+        fetchDistribucionTemas(
+          {
+            periodo: f.periodo,
+            docente: f.docente,
+            asignatura: f.asignatura,
+            escuela: f.escuela,
+            tipo: f.tipo,
+          },
+          signal,
+        ),
+        fetchDistribucionSentimiento(
+          {
+            periodo: f.periodo,
+            docente: f.docente,
+            asignatura: f.asignatura,
+            escuela: f.escuela,
+            tipo: f.tipo,
+            tema: f.tema,
+          },
+          signal,
+        ),
       ]);
 
       setState({
@@ -99,10 +116,12 @@ export function useQualitative(filters: QualitativeFilters = {}) {
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       const message =
-        err instanceof Error ? err.message : "Error al cargar análisis cualitativo";
+        err instanceof Error
+          ? err.message
+          : "Error al cargar análisis cualitativo";
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
     }
-  }, [filtersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filtersKey]);
 
   useEffect(() => {
     fetchAll();

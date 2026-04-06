@@ -1,7 +1,10 @@
-"""EvaluacionCurso entity — one row per course-group per evaluation."""
+"""EvaluacionCurso entity — one row per course-group per evaluation.
 
-from sqlalchemy import ForeignKey, Integer, Numeric, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+Granularity unit for alerts [AL-10]: docente + curso + periodo + modalidad.
+"""
+
+from sqlalchemy import ForeignKey, Integer, Numeric, String, UniqueConstraint, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.entities.base import Base, TimestampMixin, UUIDMixin
 
@@ -22,3 +25,10 @@ class EvaluacionCurso(UUIDMixin, TimestampMixin, Base):
     pct_director: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     pct_autoeval: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     pct_promedio: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
+
+    # ── Relationships ───────────────────────────────────────────────────
+    evaluacion = relationship("Evaluacion", back_populates="cursos")
+
+    __table_args__ = (
+        UniqueConstraint("evaluacion_id", "codigo", "grupo", name="uq_eval_curso_eval_cod_grupo"),
+    )

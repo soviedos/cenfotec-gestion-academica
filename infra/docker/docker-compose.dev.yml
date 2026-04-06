@@ -30,7 +30,7 @@ services:
       target: development
     volumes:
       - ../../backend:/app
-    command: celery -A app.tasks.celery_app worker --loglevel=debug
+    command: celery -A app.infrastructure.tasks.celery_app worker --loglevel=debug
     environment:
       ENVIRONMENT: development
 

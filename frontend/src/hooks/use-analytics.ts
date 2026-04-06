@@ -8,6 +8,7 @@ import {
   fetchEvolucion,
   fetchRanking,
 } from "@/lib/api/analytics";
+import { sortByPeriodo } from "@/lib/periodo-sort";
 import type {
   DimensionPromedio,
   DocentePromedio,
@@ -44,39 +45,62 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
   const [state, setState] = useState<AnalyticsState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
   const filtersKey = JSON.stringify(filters);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   const fetchAll = useCallback(async () => {
     abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const [resumen, docentes, dimensiones, evolucion, ranking] =
-        await Promise.all([
-          fetchResumen(filters.periodo),
-          fetchDocentePromedios({ periodo: filters.periodo, limit: 20 }),
-          fetchDimensiones({ periodo: filters.periodo }),
-          fetchEvolucion(),
-          fetchRanking({ periodo: filters.periodo, limit: 10 }),
-        ]);
+      const f = filtersRef.current;
 
-      setState({
-        resumen,
-        docentes,
-        dimensiones,
-        evolucion,
-        ranking,
-        isLoading: false,
-        error: null,
+      // Fire all requests in parallel but settle progressively
+      const resumenP = fetchResumen(f.periodo, signal).then((resumen) => {
+        setState((prev) => ({ ...prev, resumen }));
       });
+      const docentesP = fetchDocentePromedios(
+        { periodo: f.periodo, limit: 20 },
+        signal,
+      ).then((docentes) => {
+        setState((prev) => ({ ...prev, docentes }));
+      });
+      const dimensionesP = fetchDimensiones(
+        { periodo: f.periodo },
+        signal,
+      ).then((dimensiones) => {
+        setState((prev) => ({ ...prev, dimensiones }));
+      });
+      const evolucionP = fetchEvolucion(undefined, signal).then((evolucion) => {
+        setState((prev) => ({ ...prev, evolucion: sortByPeriodo(evolucion) }));
+      });
+      const rankingP = fetchRanking(
+        { periodo: f.periodo, limit: 10 },
+        signal,
+      ).then((ranking) => {
+        setState((prev) => ({ ...prev, ranking }));
+      });
+
+      await Promise.all([
+        resumenP,
+        docentesP,
+        dimensionesP,
+        evolucionP,
+        rankingP,
+      ]);
+
+      setState((prev) => ({ ...prev, isLoading: false, error: null }));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       const message =
         err instanceof Error ? err.message : "Error al cargar analytics";
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
     }
-  }, [filtersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filtersKey]);
 
   useEffect(() => {
     fetchAll();

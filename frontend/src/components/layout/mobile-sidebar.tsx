@@ -24,14 +24,16 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-64 p-0">
         <SheetHeader className="flex h-14 flex-row items-center gap-2.5 border-b px-4">
-          <Image
-            src="/images/logo-cenfotc-Horizontal-Negro.png"
-            alt="Universidad CENFOTEC"
-            width={160}
-            height={36}
-            className="h-7 w-auto object-contain dark:invert"
-            priority
-          />
+          <Link href="/inicio" onClick={() => onOpenChange(false)}>
+            <Image
+              src="/images/logo-cenfotc-Horizontal-Negro.png"
+              alt="Universidad CENFOTEC"
+              width={160}
+              height={36}
+              className="h-7 w-auto object-contain dark:invert"
+              priority
+            />
+          </Link>
           <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
         </SheetHeader>
 
@@ -60,7 +62,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                         )}
                       >
                         {isActive && (
-                          <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" />
+                          <span className="absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
                         )}
                         <item.icon
                           className={cn(

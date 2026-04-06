@@ -10,6 +10,7 @@ All fields have sensible defaults so you only override what matters for each tes
 import hashlib
 import uuid
 
+from app.domain.entities.alerta import Alerta
 from app.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.domain.entities.documento import Documento
 from app.domain.entities.evaluacion import Evaluacion
@@ -39,6 +40,9 @@ def make_evaluacion(**overrides) -> Evaluacion:
         "id": uid,
         "docente_nombre": "Prof. García",
         "periodo": "2025-2",
+        "modalidad": "CUATRIMESTRAL",
+        "año": 2025,
+        "periodo_orden": 2,
         "materia": "Ingeniería de Software",
         "puntaje_general": 4.5,
         "estado": "pendiente",
@@ -93,3 +97,22 @@ def make_comentario(**overrides) -> ComentarioAnalisis:
     }
     defaults.update(overrides)
     return ComentarioAnalisis(**defaults)
+
+
+def make_alerta(**overrides) -> Alerta:
+    """Build an Alerta with defaults."""
+    defaults = {
+        "docente_nombre": "Prof. García",
+        "curso": "ISW-101 Programación I",
+        "periodo": "C1 2025",
+        "tipo_alerta": "BAJO_DESEMPEÑO",
+        "modalidad": "CUATRIMESTRAL",
+        "metrica_afectada": "puntaje_general",
+        "valor_actual": 55.0,
+        "valor_anterior": None,
+        "descripcion": "Puntaje general bajo",
+        "severidad": "alta",
+        "estado": "activa",
+    }
+    defaults.update(overrides)
+    return Alerta(**defaults)

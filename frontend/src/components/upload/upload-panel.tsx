@@ -15,9 +15,8 @@ import { DropZone } from "./drop-zone";
 import { FileItem, type FileItemData, type FileItemStatus } from "./file-item";
 import { uploadDocument, ApiClientError } from "@/lib/api/documents";
 
-let fileIdCounter = 0;
 function nextFileId(): string {
-  return `file-${++fileIdCounter}`;
+  return crypto.randomUUID();
 }
 
 export function UploadPanel() {
@@ -113,7 +112,11 @@ export function UploadPanel() {
 
         {hasFiles && (
           <>
-            <div className="space-y-2" role="list" aria-label="Archivos seleccionados">
+            <div
+              className="space-y-2"
+              role="list"
+              aria-label="Archivos seleccionados"
+            >
               {files.map((item) => (
                 <FileItem key={item.id} item={item} onRemove={removeFile} />
               ))}

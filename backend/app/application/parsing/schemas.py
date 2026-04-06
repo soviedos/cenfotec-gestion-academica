@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ── Header ──────────────────────────────────────────────────────────────
 
@@ -91,6 +91,33 @@ class SeccionComentarios(BaseModel):
     comentarios: list[Comentario]
 
 
+# ── Periodo enriquecido [BR-MOD-03, BR-AN-41] ──────────────────────────
+
+
+class PeriodoData(BaseModel):
+    """Structured period info derived from the raw ``periodo`` header field.
+
+    Produced by deterministic regex matching — no LLM involved.
+    """
+
+    periodo_raw: str = Field(..., description="Valor original extraído del PDF")
+    periodo_normalizado: str = Field(
+        ..., description="Valor normalizado (UPPER, sin espacios extra)"
+    )
+    modalidad: Literal["CUATRIMESTRAL", "MENSUAL", "B2B", "DESCONOCIDA"] = Field(
+        ..., description="Modalidad inferida"
+    )
+    año: int = Field(..., ge=2000, le=2100, description="Año académico")
+    periodo_orden: int = Field(..., ge=0, description="Orden cronológico dentro del año")
+    prefijo: str = Field(..., description="Prefijo del periodo (C, M, MT, B2B)")
+    numero: int = Field(..., ge=0, description="Número de periodo dentro del prefijo")
+
+    @field_validator("modalidad", mode="before")
+    @classmethod
+    def _coerce_modalidad(cls, v: str) -> str:
+        return v.upper() if isinstance(v, str) else v
+
+
 # ── Top-level parsed result ─────────────────────────────────────────────
 
 
@@ -98,6 +125,7 @@ class ParsedEvaluacion(BaseModel):
     """Complete structured data extracted from one evaluation PDF."""
 
     header: HeaderData
+    periodo_data: PeriodoData
     dimensiones: list[DimensionMetrica] = Field(..., min_length=1)
     resumen_pct: ResumenPorcentajes
     cursos: list[CursoGrupo] = Field(..., min_length=1)

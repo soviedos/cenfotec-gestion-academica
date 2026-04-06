@@ -1,7 +1,7 @@
 # Arquitectura del Sistema
 
 > Documento técnico de arquitectura para la plataforma **Evaluaciones Docentes**.
-> Última actualización: 2026-04-02
+> Última actualización: 2026-06-04
 
 ---
 
@@ -15,6 +15,18 @@
 6. [Decisiones técnicas clave](#6-decisiones-técnicas-clave)
 7. [Riesgos y mitigaciones](#7-riesgos-y-mitigaciones)
 8. [Infraestructura on-premise](#8-infraestructura-on-premise)
+
+### Documentos relacionados
+
+| Tema                      | Documento                                        |
+| ------------------------- | ------------------------------------------------ |
+| Modelo de datos           | [data-model.md](data-model.md)                   |
+| Pipeline de procesamiento | [processing-pipeline.md](processing-pipeline.md) |
+| Integración con Gemini    | [gemini-integration.md](gemini-integration.md)   |
+| Estrategia de testing     | [testing-strategy.md](testing-strategy.md)       |
+| Despliegue on-premise     | [deployment.md](deployment.md)                   |
+| Desarrollo local          | [local-development.md](local-development.md)     |
+| Contratos de API          | [api-contracts.md](api-contracts.md)             |
 
 ---
 
@@ -112,14 +124,19 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 
 ### 3.3 Capa de Dominio (Services)
 
-| Responsabilidad     | Detalle                                                      |
-| ------------------- | ------------------------------------------------------------ |
-| `pdf_parser`        | Extrae texto estructurado del PDF usando PyMuPDF             |
-| `gemini_analyzer`   | Envía texto a Gemini, recibe análisis estructurado en JSON   |
-| `embedding_service` | Genera embeddings vectoriales y los almacena en pgvector     |
-| `reporte_generator` | Agrega datos por docente, periodo, facultad; genera métricas |
+| Responsabilidad             | Detalle                                                            |
+| --------------------------- | ------------------------------------------------------------------ |
+| `processing_service`        | Pipeline completo: parseo → clasificación → persistencia           |
+| `document_service`          | CRUD de documentos, deduplicación, eliminación con MinIO           |
+| `analytics_service`         | Métricas agregadas: dimensiones, docentes, evolución, ranking      |
+| `qualitative_service`       | Comentarios clasificados, distribuciones, nube de palabras         |
+| `query_service`             | Orquestador RAG: retrieval SQL → Gemini → auditoría                |
+| `alert_engine`              | Motor de reglas de negocio para generación automática de alertas   |
+| `alerta_service`            | CRUD y gestión de estado de alertas                                |
+| `dashboard_service`         | Agregaciones para dashboard ejecutivo (KPIs, tendencias, insights) |
+| `gemini_enrichment_service` | Enriquecimiento de comentarios con Gemini (clasificación avanzada) |
 
-**Principio:** los servicios son funciones puras o clases sin dependencia de FastAPI. Se invocan desde endpoints y desde tareas Celery indistintamente.
+**Principio:** los servicios son clases sin dependencia de FastAPI. Reciben repositorios por inyección de dependencias. Se invocan desde endpoints y desde tareas Celery indistintamente.
 
 ### 3.4 Capa de Procesamiento (Celery)
 
@@ -132,21 +149,24 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 
 ### 3.5 Capa de Persistencia (PostgreSQL + pgvector)
 
-| Tabla                   | Propósito                                                             |
-| ----------------------- | --------------------------------------------------------------------- |
-| `documentos`            | Metadatos del PDF (nombre, hash, ruta MinIO, estado de procesamiento) |
-| `evaluaciones`          | Datos estructurados extraídos de cada evaluación                      |
-| `docentes`              | Catálogo de docentes evaluados                                        |
-| `periodos`              | Periodos académicos                                                   |
-| `usuarios`              | Usuarios del sistema con roles                                        |
-| `embeddings` (pgvector) | Vectores de las evaluaciones para búsqueda semántica                  |
+| Tabla                      | Propósito                                                      |
+| -------------------------- | -------------------------------------------------------------- |
+| `documentos`               | Metadatos del PDF (nombre, hash SHA-256, ruta MinIO, estado)   |
+| `evaluaciones`             | Datos estructurados extraídos de cada evaluación               |
+| `evaluacion_dimensiones`   | Puntajes por dimensión pedagógica (METODOLOGÍA, Dominio, etc.) |
+| `evaluacion_cursos`        | Datos por curso-grupo (respondieron, matriculados, %)          |
+| `comentario_analisis`      | Comentarios clasificados (tema, sentimiento, fuente)           |
+| `gemini_audit_log`         | Auditoría de cada llamada a Gemini API                         |
+| `alertas`                  | Alertas generadas por el motor de reglas de negocio            |
+| `document_processing_jobs` | Estado y metadatos de trabajos de procesamiento de PDFs        |
+
+> Detalle completo: [data-model.md](data-model.md)
 
 ### 3.6 Capa de Almacenamiento (MinIO)
 
-| Bucket                  | Contenido                               |
-| ----------------------- | --------------------------------------- |
-| `documentos-raw`        | PDFs originales tal como fueron subidos |
-| `documentos-procesados` | Texto extraído en formato JSON (backup) |
+| Bucket         | Contenido                               |
+| -------------- | --------------------------------------- |
+| `evaluaciones` | PDFs originales tal como fueron subidos |
 
 ---
 
@@ -177,107 +197,167 @@ Usuario                Frontend              Backend API            MinIO       
 ### 4.2 Fase de Procesamiento (Celery Worker)
 
 ```
-Celery Worker          MinIO          pdf_parser        gemini_analyzer       PostgreSQL
-     │                   │                │                    │                   │
-     │── get_object() ──▶│                │                    │                   │
-     │◀── PDF bytes ─────│                │                    │                   │
-     │── extraer texto ──────────────────▶│                    │                   │
-     │◀── texto estructurado ─────────────│                    │                   │
-     │── analizar con IA ─────────────────────────────────────▶│                   │
-     │◀── JSON estructurado ──────────────────────────────────│                   │
-     │── generar embedding ──────────────────────────────────▶│                   │
-     │◀── vector [1536 dims] ────────────────────────────────│                   │
-     │── INSERT evaluacion + embedding ────────────────────────────────────────▶│
-     │── UPDATE documento (estado: "completado") ──────────────────────────────▶│
+Celery Worker          MinIO          pdf_parser        classifier         PostgreSQL
+     │                   │                │                  │                  │
+     │── get_object() ──▶│                │                  │                  │
+     │◀── PDF bytes ─────│                │                  │                  │
+     │── extraer texto ──────────────────▶│                  │                  │
+     │◀── ParsedEvaluacion ───────────────│                  │                  │
+     │── clasificar comentarios ────────────────────────────▶│                  │
+     │◀── ClassificationResult[] ──────────────────────────│                  │
+     │── INSERT evaluacion + dimensiones + cursos + comentarios ──────────────▶│
+     │── UPDATE documento (estado: "completado") ─────────────────────────────▶│
 ```
 
-**Pipeline Celery (cadena de tareas):**
+**Pipeline Celery:**
 
 ```
-task_parse_pdf  →  task_analyze_with_gemini  →  task_generate_embeddings  →  task_update_status
+task_process_pdf → parse_evaluacion → classify_comments → persist (transacción)
 ```
 
-Cada tarea es independiente y retryable. Si `task_analyze_with_gemini` falla por rate limit de Gemini, reintenta con backoff exponencial sin reprocesar el parseo.
+Todo ocurre en una sola tarea (`task_process_pdf`) con transacción atómica. Si falla cualquier paso, se hace rollback y `documentos.estado = "error"`. Reintentos con backoff exponencial ante fallos transitorios.
 
-### 4.3 Fase de Consulta
+### 4.3 Fase de Consulta IA (RAG)
 
 ```
-Usuario               Frontend              Backend API           PostgreSQL
-  │                      │                      │                     │
-  │── busca "didáctica" ▶│                      │                     │
-  │                      │── GET /evaluaciones  │                     │
-  │                      │   ?q=didáctica ──────▶│                     │
-  │                      │                      │── query SQL ───────▶│
-  │                      │                      │   + búsqueda vector │
-  │                      │                      │◀── resultados ──────│
-  │                      │◀── JSON ─────────────│                     │
-  │◀── tabla resultados ─│                                            │
+Usuario               Frontend              QueryService           PostgreSQL        Gemini API
+  │                      │                      │                     │                  │
+  │── pregunta ─────────▶│                      │                     │                  │
+  │                      │── POST /query ──────▶│                     │                  │
+  │                      │                      │── _retrieve_metrics ▶│                  │
+  │                      │                      │── _retrieve_comments▶│                  │
+  │                      │                      │◀── evidencia ────────│                  │
+  │                      │                      │── answer_query ──────────────────────▶│
+  │                      │                      │◀── respuesta + tokens ───────────────│
+  │                      │                      │── log_call (auditoría) ──────────────▶│
+  │                      │◀── QueryResponse ────│                                        │
+  │◀── respuesta + citas─│                                                               │
 ```
 
 **Tipos de consulta soportados:**
 
-| Tipo                | Mecanismo                   | Ejemplo                                         |
-| ------------------- | --------------------------- | ----------------------------------------------- |
-| Filtro estructurado | SQL WHERE                   | Evaluaciones del docente X en periodo Y         |
-| Búsqueda por texto  | `tsvector` Full-Text Search | Evaluaciones que mencionan "metodología"        |
-| Búsqueda semántica  | pgvector cosine similarity  | Evaluaciones similares a "buen manejo del aula" |
-| Agregación          | SQL GROUP BY + funciones    | Promedio de puntuaciones por facultad           |
+| Tipo                | Mecanismo                | Ejemplo                                  |
+| ------------------- | ------------------------ | ---------------------------------------- |
+| Filtro estructurado | SQL WHERE                | Evaluaciones del docente X en periodo Y  |
+| Consulta IA (RAG)   | SQL retrieval + Gemini   | "¿Cómo es la metodología de Juan Pérez?" |
+| Agregación          | SQL GROUP BY + funciones | Promedio de puntuaciones por dimensión   |
 
 ---
 
 ## 5. Módulos Principales
 
-### 5.1 Backend
+### 5.1 Backend (Arquitectura Hexagonal)
 
 ```
 backend/app/
-├── api/v1/
-│   ├── documentos.py          → Upload, listado y estado de PDFs
-│   ├── evaluaciones.py        → CRUD y búsqueda de evaluaciones
-│   ├── reportes.py            → Agregaciones y métricas
-│   ├── auth.py                → Login, logout, sesión
-│   └── router.py              → Agregador de routers con prefijo /api/v1
-├── services/
-│   ├── pdf_parser.py          → Extracción de texto con PyMuPDF
-│   ├── gemini_analyzer.py     → Prompt engineering + llamada a Gemini
-│   ├── embedding_service.py   → Generación de vectores y búsqueda
-│   └── reporte_generator.py   → Lógica de reportes y estadísticas
-├── tasks/
-│   ├── celery_app.py          → Configuración broker, serializer, retries
-│   ├── pdf_processing.py      → Tarea: pipeline completo de PDF
-│   └── analysis.py            → Tarea: re-análisis bajo demanda
-├── models/                    → SQLAlchemy: Documento, Evaluacion, Docente, Usuario
-├── schemas/                   → Pydantic: validación request/response
-├── db/                        → Session, engine, Alembic migrations
-└── storage/                   → Cliente MinIO abstracción put/get/delete
+├── api/                           → Capa de transporte HTTP
+│   ├── rate_limit.py              → Rate limiter (Redis + fallback in-memory)
+│   ├── deps.py                    → Dependency injection (DB, storage, Gemini)
+│   └── v1/
+│       ├── router.py              → Agregador de routers con prefijo /api/v1
+│       ├── documentos.py          → Upload, listado, periodos, eliminación
+│       ├── evaluaciones.py        → Listado con filtros (modalidad, periodo, docente)
+│       ├── analytics.py           → 5 endpoints BI (resumen, docentes, dimensiones, evolución, ranking)
+│       ├── qualitative.py         → 7 endpoints análisis cualitativo
+│       ├── query.py               → Consultas IA (RAG + Gemini) con rate limiting
+│       ├── dashboard.py           → Dashboard ejecutivo (KPIs, tendencias, insights)
+│       └── alertas.py             → CRUD alertas con filtros y rebuild
+├── application/                   → Lógica de aplicación (casos de uso)
+│   ├── parsing/                   → Parser determinístico de PDFs
+│   │   ├── parser.py              → Función principal parse_evaluacion()
+│   │   ├── constants.py           → Regex anchors, noise values, PeriodoData
+│   │   ├── schemas.py             → ParsedEvaluacion, HeaderData, etc.
+│   │   ├── errors.py              → ParseResult, ParseError, ParseWarning
+│   │   └── extractors/            → 4 extractores especializados
+│   │       ├── header.py          → Profesor, periodo, recinto
+│   │       ├── metrics.py         → Dimensiones pedagógicas
+│   │       ├── courses.py         → Cursos y grupos
+│   │       └── comments.py        → Comentarios cualitativos
+│   ├── classification/            → Clasificador de comentarios
+│   │   └── __init__.py            → classify_comment(), temas, sentimiento
+│   └── services/                  → 9 servicios de aplicación
+│       ├── processing_service.py  → Pipeline: parseo → clasificación → persistencia
+│       ├── document_service.py    → CRUD documentos + MinIO
+│       ├── analytics_service.py   → Métricas con caché (modalidad-aware)
+│       ├── qualitative_service.py → Análisis cualitativo con caché
+│       ├── query_service.py       → Orquestador RAG: retrieval → Gemini → audit
+│       ├── alert_engine.py        → Motor de reglas: BAJO_DESEMPEÑO, CAIDA, SENTIMIENTO, PATRON
+│       ├── alerta_service.py      → Gestión de alertas (listado, estado)
+│       ├── dashboard_service.py   → Agregaciones para dashboard ejecutivo
+│       └── gemini_enrichment_service.py → Enriquecimiento IA de comentarios
+├── domain/                        → Entidades y reglas de negocio
+│   ├── entities/                  → 9 modelos SQLAlchemy
+│   │   ├── base.py                → UUIDMixin, TimestampMixin
+│   │   ├── documento.py           → PDF subido
+│   │   ├── evaluacion.py          → Datos extraídos (con modalidad, año, periodo_orden)
+│   │   ├── evaluacion_dimension.py→ Puntajes por dimensión
+│   │   ├── evaluacion_curso.py    → Datos por curso-grupo
+│   │   ├── comentario_analisis.py → Comentario clasificado
+│   │   ├── gemini_audit_log.py    → Auditoría de llamadas a Gemini
+│   │   ├── alerta.py              → Alertas generadas por reglas de negocio
+│   │   ├── document_processing_job.py → Estado de trabajos de procesamiento
+│   │   └── enums.py               → Enumeraciones (Modalidad, TipoAlerta, Severidad, etc.)
+│   ├── schemas/                   → DTOs Pydantic (request/response)
+│   └── exceptions.py             → Excepciones de dominio (Gemini*, NotFound, Duplicate)
+├── infrastructure/                → Adaptadores de infraestructura
+│   ├── database/
+│   │   ├── session.py             → AsyncSession factory, get_db
+│   │   └── migrations/            → Alembic (9 migraciones: 0001-0009)
+│   ├── external/
+│   │   ├── gemini_gateway.py      → Wrapper async google-genai SDK
+│   │   └── prompt_templates.py    → System prompt + templates
+│   ├── repositories/              → 6 repositorios SQL
+│   │   ├── evaluacion.py          → CRUD + list_filtered, count_filtered
+│   │   ├── documento.py           → CRUD + periodos, por hash
+│   │   ├── analytics_repo.py      → Queries analíticas (modalidad-aware)
+│   │   ├── qualitative_repo.py    → Queries cualitativas (modalidad-aware)
+│   │   ├── alerta_repo.py         → CRUD alertas con filtros + paginación
+│   │   └── gemini_audit.py        → Log de auditoría Gemini
+│   ├── storage/
+│   │   ├── file_storage.py        → Protocolo de almacenamiento
+│   │   └── minio_client.py        → Cliente MinIO (upload/download/delete)
+│   └── tasks/
+│       └── celery_app.py          → Configuración Celery + Redis + task_process_pdf
+└── core/
+    ├── config.py                  → Settings (BaseSettings + validación producción)
+    ├── cache.py                   → Decorador @cached con TTL para Redis
+    └── logging.py                 → Configuración de logger
 ```
 
-### 5.2 Frontend
+### 5.2 Frontend (Next.js App Router)
 
 ```
 frontend/src/
 ├── app/                             → Pages (App Router MPA)
 │   ├── (dashboard)/
+│   │   ├── inicio/page.tsx          → Homepage con dashboard ejecutivo
 │   │   ├── carga/page.tsx           → Subida de PDFs con drag & drop
-│   │   ├── evaluaciones/page.tsx    → Listado con filtros y búsqueda
-│   │   ├── evaluaciones/[id]/page.tsx → Detalle de evaluación
-│   │   ├── reportes/page.tsx        → Dashboard de métricas
+│   │   ├── biblioteca/page.tsx      → Biblioteca de documentos
+│   │   ├── estadisticas/page.tsx    → Dashboard analítico (métricas, gráficas)
+│   │   ├── sentimiento/page.tsx     → Análisis cualitativo (comentarios, sentimiento)
+│   │   ├── docentes/page.tsx        → Ranking y detalles de docentes
+│   │   ├── reportes/page.tsx        → Alertas y reportes
+│   │   ├── consultas-ia/page.tsx    → Consultas inteligentes (RAG + Gemini)
 │   │   └── layout.tsx               → Sidebar + navbar del dashboard
-│   ├── (auth)/
-│   │   └── login/page.tsx           → Pantalla de autenticación
 │   ├── layout.tsx                   → Layout raíz (html, head, fonts)
-│   └── page.tsx                     → Redirect a /carga o /login
+│   └── page.tsx                     → Redirect a inicio
 ├── components/
-│   ├── ui/                          → Button, Input, Card, Modal, Table
-│   ├── evaluaciones/                → EvaluacionCard, EvaluacionFilters
-│   ├── reportes/                    → ChartBar, MetricCard, ExportButton
-│   └── layout/                      → Navbar, Sidebar, Footer
-├── hooks/                           → useEvaluaciones, useUpload, useDebounce
+│   ├── ui/                          → shadcn/ui (Button, Card, Dialog, etc.)
+│   ├── dashboard/                   → KPICard, CommandCenter, RankingTable, Charts
+│   ├── consultas-ia/                → QueryInput, QueryResponse, QueryEvidence
+│   ├── upload/                      → UploadPanel, DropZone, FileItem
+│   ├── sentimiento/                 → QualitativeDashboard, states, distribuciones
+│   └── layout/                      → Sidebar, AppSidebar, ThemeToggle
+├── hooks/                           → useQuery, useUpload, useDebounce
 ├── lib/
-│   ├── api-client.ts                → Fetch wrapper con base URL y auth
-│   ├── auth.ts                      → Token management
-│   └── utils.ts                     → Formatters, validators
-└── types/                           → Evaluacion, Documento, Docente, ApiResponse
+│   ├── api/                         → Clientes tipados: analytics, qualitative, documents,
+│   │                                  dashboard, alertas, query
+│   ├── api-client.ts                → Fetch wrapper con manejo de errores
+│   ├── business-rules.ts            → 150+ reglas de negocio (BR-*)
+│   ├── periodo-sort.ts              → Ordenamiento de períodos
+│   └── utils.ts                     → cn(), formatters
+├── styles/                          → Tailwind CSS v4 globals
+└── types/                           → TypeScript interfaces para API schemas
 ```
 
 ### 5.3 Infraestructura
@@ -350,7 +430,7 @@ infra/
 | #   | Riesgo                                           | Probabilidad | Impacto | Mitigación                                                                                                                                  |
 | --- | ------------------------------------------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | R7  | **Pérdida de datos por fallo de VM**             | Baja         | Crítico | Backups diarios de PostgreSQL (pg_dump). MinIO con replicación o backup. Docker volumes en storage redundante de Proxmox                    |
-| R8  | **Actualización de Gemini API rompe respuestas** | Media        | Medio   | Versionar el modelo usado (e.g., `gemini-2.0-flash`). Schema Pydantic estricto valida respuesta. Tests de integración contra API real       |
+| R8  | **Actualización de Gemini API rompe respuestas** | Media        | Medio   | Versionar el modelo usado (e.g., `gemini-2.5-flash`). Schema Pydantic estricto valida respuesta. Tests de integración contra API real       |
 | R9  | **Equipo no familiarizado con el stack**         | Media        | Medio   | Documentación detallada. ADRs para cada decisión. README por módulo. Makefile simplifica operaciones                                        |
 | R10 | **Degradación de rendimiento con volumen**       | Baja         | Medio   | Índices en columnas de filtro frecuente. Connection pooling con SQLAlchemy. Celery concurrency configurable. Monitoreo con Flower + pg_stat |
 

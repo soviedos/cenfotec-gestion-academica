@@ -49,7 +49,13 @@ const mockDocentes: DocentePromedio[] = [
 ];
 
 const mockDimensiones: DimensionPromedio[] = [
-  { dimension: "Metodología", pct_estudiante: 88, pct_director: 90, pct_autoeval: 85, pct_promedio: 87.67 },
+  {
+    dimension: "Metodología",
+    pct_estudiante: 88,
+    pct_director: 90,
+    pct_autoeval: 85,
+    pct_promedio: 87.67,
+  },
 ];
 
 const mockEvolucion: PeriodoMetrica[] = [
@@ -58,7 +64,12 @@ const mockEvolucion: PeriodoMetrica[] = [
 ];
 
 const mockRanking: RankingDocente[] = [
-  { posicion: 1, docente_nombre: "Prof. López", promedio: 92, evaluaciones_count: 4 },
+  {
+    posicion: 1,
+    docente_nombre: "Prof. López",
+    promedio: 92,
+    evaluaciones_count: 4,
+  },
 ];
 
 vi.mock("@/lib/api/analytics", () => ({
@@ -148,9 +159,7 @@ describe("AnalyticsDashboard", () => {
     setupMocks({ empty: true });
     render(<AnalyticsDashboard />);
     await waitFor(() => {
-      expect(
-        screen.getByText("Sin datos de evaluaciones"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Sin datos de evaluaciones")).toBeInTheDocument();
     });
   });
 
@@ -190,7 +199,10 @@ describe("AnalyticsDashboard", () => {
 
     // After clicking, fetchResumen should have been called again with periodo
     await waitFor(() => {
-      expect(mockedFetchResumen).toHaveBeenCalledWith("2025-1");
+      expect(mockedFetchResumen).toHaveBeenCalledWith(
+        "2025-1",
+        expect.any(AbortSignal),
+      );
     });
   });
 });

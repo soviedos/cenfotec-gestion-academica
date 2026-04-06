@@ -35,7 +35,7 @@ export function ThemeBarChart({ data, onThemeClick }: ThemeBarChartProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[320px] items-center justify-center">
+          <div className="flex h-80 items-center justify-center">
             <p className="text-sm text-muted-foreground">
               No hay datos de temas disponibles.
             </p>
@@ -69,7 +69,11 @@ export function ThemeBarChart({ data, onThemeClick }: ThemeBarChartProps) {
             layout="vertical"
             margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
             onClick={(e) => {
-              const payload = (e as unknown as { activePayload?: { payload?: { raw?: string } }[] })?.activePayload;
+              const payload = (
+                e as unknown as {
+                  activePayload?: { payload?: { raw?: string } }[];
+                }
+              )?.activePayload;
               if (payload?.[0]?.payload?.raw && onThemeClick) {
                 onThemeClick(payload[0].payload.raw);
               }

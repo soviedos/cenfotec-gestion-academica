@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.evaluacion import Evaluacion
 from app.domain.entities.evaluacion_dimension import EvaluacionDimension
+from app.domain.periodo import sort_periodos
 
 
 class AnalyticsRepository:
@@ -26,6 +27,7 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
     ) -> dict:
         """Return global summary metrics.
 
@@ -35,12 +37,14 @@ class AnalyticsRepository:
         base = select(Evaluacion).where(Evaluacion.estado == "completado")
         if periodo:
             base = base.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            base = base.where(Evaluacion.modalidad == modalidad)
 
         sub = base.subquery()
 
-        avg_expr = func.coalesce(
-            func.avg(sub.c.puntaje_general.cast(Float)), 0.0
-        ).label("promedio_global")
+        avg_expr = func.coalesce(func.avg(sub.c.puntaje_general.cast(Float)), 0.0).label(
+            "promedio_global"
+        )
         stmt = select(
             avg_expr,
             func.count(sub.c.id).label("total_evaluaciones"),
@@ -61,6 +65,7 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
@@ -77,6 +82,8 @@ class AnalyticsRepository:
         )
         if periodo:
             stmt = stmt.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
         stmt = stmt.offset(offset).limit(limit)
 
         rows = (await self.session.execute(stmt)).all()
@@ -96,22 +103,30 @@ class AnalyticsRepository:
         *,
         periodo: str | None = None,
         docente: str | None = None,
+        modalidad: str | None = None,
     ) -> list[dict]:
         """Return average percentages per evaluation dimension."""
-        stmt = select(
-            EvaluacionDimension.nombre.label("dimension"),
-            func.avg(EvaluacionDimension.pct_estudiante.cast(Float)).label("pct_estudiante"),
-            func.avg(EvaluacionDimension.pct_director.cast(Float)).label("pct_director"),
-            func.avg(EvaluacionDimension.pct_autoeval.cast(Float)).label("pct_autoeval"),
-            func.avg(EvaluacionDimension.pct_promedio.cast(Float)).label("pct_promedio"),
-        ).group_by(EvaluacionDimension.nombre).order_by(EvaluacionDimension.nombre)
+        stmt = (
+            select(
+                EvaluacionDimension.nombre.label("dimension"),
+                func.avg(EvaluacionDimension.pct_estudiante.cast(Float)).label("pct_estudiante"),
+                func.avg(EvaluacionDimension.pct_director.cast(Float)).label("pct_director"),
+                func.avg(EvaluacionDimension.pct_autoeval.cast(Float)).label("pct_autoeval"),
+                func.avg(EvaluacionDimension.pct_promedio.cast(Float)).label("pct_promedio"),
+            )
+            .group_by(EvaluacionDimension.nombre)
+            .order_by(EvaluacionDimension.nombre)
+        )
 
-        if periodo or docente:
+        needs_join = periodo or docente or modalidad
+        if needs_join:
             stmt = stmt.join(Evaluacion, EvaluacionDimension.evaluacion_id == Evaluacion.id)
             if periodo:
                 stmt = stmt.where(Evaluacion.periodo == periodo)
             if docente:
                 stmt = stmt.where(Evaluacion.docente_nombre == docente)
+            if modalidad:
+                stmt = stmt.where(Evaluacion.modalidad == modalidad)
 
         rows = (await self.session.execute(stmt)).all()
         return [
@@ -131,6 +146,7 @@ class AnalyticsRepository:
         self,
         *,
         docente: str | None = None,
+        modalidad: str | None = None,
     ) -> list[dict]:
         """Return average score per period for trend analysis."""
         stmt = (
@@ -141,13 +157,14 @@ class AnalyticsRepository:
             )
             .where(Evaluacion.estado == "completado")
             .group_by(Evaluacion.periodo)
-            .order_by(Evaluacion.periodo)
         )
         if docente:
             stmt = stmt.where(Evaluacion.docente_nombre == docente)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
 
         rows = (await self.session.execute(stmt)).all()
-        return [
+        unsorted = [
             {
                 "periodo": r.periodo,
                 "promedio": round(float(r.promedio), 2),
@@ -155,6 +172,7 @@ class AnalyticsRepository:
             }
             for r in rows
         ]
+        return sort_periodos(unsorted)  # [BR-AN-40]
 
     # ── 5. Ranking de docentes ──────────────────────────────────────
 
@@ -162,6 +180,7 @@ class AnalyticsRepository:
         self,
         *,
         periodo: str | None = None,
+        modalidad: str | None = None,
         limit: int = 10,
     ) -> list[dict]:
         """Return top teachers ranked by average score."""
@@ -178,6 +197,8 @@ class AnalyticsRepository:
         )
         if periodo:
             stmt = stmt.where(Evaluacion.periodo == periodo)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
 
         rows = (await self.session.execute(stmt)).all()
         return [

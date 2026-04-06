@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+from typing import Protocol, runtime_checkable
 
 from minio import Minio
 
@@ -9,17 +10,15 @@ from app.core.config import settings
 from app.infrastructure.storage.minio_client import get_minio_client
 
 
-class FileStorage:
-    """Base interface for file storage operations."""
+@runtime_checkable
+class FileStorage(Protocol):
+    """Protocol for file storage operations — implement for any backend."""
 
-    async def upload(self, path: str, data: bytes, content_type: str) -> str:
-        raise NotImplementedError
+    async def upload(self, path: str, data: bytes, content_type: str) -> str: ...
 
-    async def download(self, path: str) -> bytes:
-        raise NotImplementedError
+    async def download(self, path: str) -> bytes: ...
 
-    async def delete(self, path: str) -> None:
-        raise NotImplementedError
+    async def delete(self, path: str) -> None: ...
 
 
 class MinioFileStorage(FileStorage):

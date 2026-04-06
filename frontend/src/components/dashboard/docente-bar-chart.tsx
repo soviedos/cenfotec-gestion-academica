@@ -117,7 +117,7 @@ export function DocenteBarChart({ data }: DocenteBarChartProps) {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-[320px] items-center justify-center">
+    <div className="flex h-80 items-center justify-center">
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   );

@@ -33,7 +33,7 @@ export function TrendChart({ data }: TrendChartProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[280px] items-center justify-center">
+          <div className="flex h-70 items-center justify-center">
             <p className="text-sm text-muted-foreground">
               No hay datos históricos disponibles.
             </p>

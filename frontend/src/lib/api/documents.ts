@@ -29,4 +29,12 @@ export async function listDocuments(
   return apiClient.get<PaginatedResponse<Documento>>(endpoint);
 }
 
+export async function listPeriodos(): Promise<string[]> {
+  return apiClient.get<string[]>("/api/v1/documentos/periodos");
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  await apiClient.delete(`/api/v1/documentos/${id}`);
+}
+
 export { ApiClientError };

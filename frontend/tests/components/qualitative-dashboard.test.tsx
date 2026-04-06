@@ -257,6 +257,7 @@ describe("QualitativeDashboard", () => {
     await waitFor(() => {
       expect(mockedFetchComentarios).toHaveBeenCalledWith(
         expect.objectContaining({ tipo: "fortaleza" }),
+        expect.any(AbortSignal),
       );
     });
   });

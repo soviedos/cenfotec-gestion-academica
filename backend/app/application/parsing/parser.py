@@ -17,14 +17,18 @@ from __future__ import annotations
 import time
 
 import fitz  # PyMuPDF
-
 from app.application.parsing.constants import PARSER_VERSION
-from app.application.parsing.errors import ParseError, ParseMetadata, ParseResult, ParseWarning
+from app.application.parsing.errors import (ParseError, ParseMetadata,
+                                            ParseResult, ParseWarning)
 from app.application.parsing.extractors.comments import extract_comments
 from app.application.parsing.extractors.courses import extract_courses
 from app.application.parsing.extractors.header import extract_header
 from app.application.parsing.extractors.metrics import extract_metrics
-from app.application.parsing.schemas import ParsedEvaluacion
+from app.application.parsing.schemas import ParsedEvaluacion, PeriodoData
+from app.domain.entities.enums import Modalidad
+from app.domain.exceptions import ValidationError as DomainValidationError
+from app.domain.periodo import (determinar_modalidad, normalizar_periodo,
+                                parse_periodo)
 
 
 def parse_evaluacion(pdf_bytes: bytes) -> ParseResult:
@@ -70,6 +74,12 @@ def parse_evaluacion(pdf_bytes: bytes) -> ParseResult:
                 context={"page": 1, "text_preview": pages_text[0][:200]},
             )
         )
+        doc.close()
+        return _fail(errors, warnings, start, pages_processed=num_pages)
+
+    # ── E2b: Periodo validation [BR-MOD-03, BR-AN-41] ──────────────
+    periodo_data = _resolve_periodo(header.periodo, errors, warnings)
+    if periodo_data is None:
         doc.close()
         return _fail(errors, warnings, start, pages_processed=num_pages)
 
@@ -160,6 +170,7 @@ def parse_evaluacion(pdf_bytes: bytes) -> ParseResult:
 
     parsed = ParsedEvaluacion(
         header=header,
+        periodo_data=periodo_data,
         dimensiones=dimensiones,
         resumen_pct=resumen_pct,
         cursos=cursos,
@@ -192,6 +203,81 @@ def parse_evaluacion(pdf_bytes: bytes) -> ParseResult:
 
 
 # ── Internal helpers ────────────────────────────────────────────────────
+
+
+def _resolve_periodo(
+    raw_periodo: str,
+    errors: list[ParseError],
+    warnings: list[ParseWarning],
+) -> PeriodoData | None:
+    """Validate & enrich the raw periodo string from the PDF header.
+
+    Returns ``PeriodoData`` on success, or ``None`` if the period is
+    fatally invalid (appending to *errors*).  Non-fatal issues append
+    to *warnings* (e.g. ``DESCONOCIDA`` modalidad).
+
+    Implements [BR-MOD-03], [BR-MOD-05], [BR-AN-41].
+    """
+    normalizado = normalizar_periodo(raw_periodo)
+    modalidad = determinar_modalidad(raw_periodo)
+
+    # ── Try full structural parse ────────────────────────────────────
+    if modalidad != Modalidad.DESCONOCIDA:
+        try:
+            info = parse_periodo(raw_periodo)
+            return PeriodoData(
+                periodo_raw=raw_periodo,
+                periodo_normalizado=info.periodo_normalizado,
+                modalidad=info.modalidad.value,
+                año=info.año,
+                periodo_orden=info.periodo_orden,
+                prefijo=info.prefijo,
+                numero=info.numero,
+            )
+        except DomainValidationError as exc:
+            # Recognised modalidad but invalid structure (e.g. M11, year 1999)
+            errors.append(
+                ParseError(
+                    stage="periodo",
+                    code="INVALID_PERIODO_STRUCTURE",
+                    message=f"Periodo reconocido pero inválido: {exc.detail}",
+                    context={
+                        "periodo_raw": raw_periodo,
+                        "periodo_normalizado": normalizado,
+                        "modalidad_detected": modalidad.value,
+                    },
+                )
+            )
+            return None
+
+    # ── DESCONOCIDA: warn but do NOT block processing [BR-MOD-05] ────
+    warnings.append(
+        ParseWarning(
+            code="UNKNOWN_MODALIDAD",
+            message=(
+                f"No se pudo determinar la modalidad del periodo '{normalizado}'. "
+                "La evaluación se procesará pero NO se incluirá en rankings ni tendencias."
+            ),
+            context={"periodo_raw": raw_periodo, "periodo_normalizado": normalizado},
+        )
+    )
+    return PeriodoData(
+        periodo_raw=raw_periodo,
+        periodo_normalizado=normalizado,
+        modalidad="DESCONOCIDA",
+        año=_guess_year_from_raw(normalizado),
+        periodo_orden=0,
+        prefijo="",
+        numero=0,
+    )
+
+
+def _guess_year_from_raw(normalizado: str) -> int:
+    """Best-effort year extraction from an unrecognised periodo string."""
+    import re as _re
+
+    m = _re.search(r"\b(20\d{2})\b", normalizado)
+    return int(m.group(1)) if m else 2020
 
 
 def _open_document(pdf_bytes: bytes, errors: list[ParseError]) -> fitz.Document | None:

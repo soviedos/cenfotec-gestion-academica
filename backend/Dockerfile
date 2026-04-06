@@ -15,6 +15,8 @@ COPY pyproject.toml .
 FROM base AS development
 COPY . .
 RUN uv pip install --system -e ".[dev]"
+RUN adduser --disabled-password --no-create-home --gecos '' appuser
+USER appuser
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
@@ -22,5 +24,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 FROM base AS production
 COPY . .
 RUN uv pip install --system -e .
+RUN adduser --disabled-password --no-create-home --gecos '' appuser
+USER appuser
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

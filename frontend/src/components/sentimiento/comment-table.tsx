@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   Card,
   CardContent,
@@ -20,7 +21,7 @@ interface CommentTableProps {
   onSentimientoClick?: (sentimiento: string) => void;
 }
 
-export function CommentTable({
+export const CommentTable = memo(function CommentTable({
   data,
   onTemaClick,
   onSentimientoClick,
@@ -65,7 +66,10 @@ export function CommentTable({
               </thead>
               <tbody className="divide-y">
                 {data.map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/50 transition-colors">
+                  <tr
+                    key={c.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
                     <td className="px-4 py-3 max-w-md">
                       <p className="line-clamp-2">{c.texto}</p>
                       {c.asignatura && (
@@ -109,4 +113,4 @@ export function CommentTable({
       </CardContent>
     </Card>
   );
-}
+});

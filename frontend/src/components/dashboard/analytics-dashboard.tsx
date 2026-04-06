@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  BarChart3,
-  GraduationCap,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { BarChart3, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { comparePeriodos } from "@/lib/periodo-sort";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { DocenteBarChart } from "@/components/dashboard/docente-bar-chart";
 import { DimensionRadarChart } from "@/components/dashboard/dimension-radar-chart";
@@ -22,11 +18,20 @@ import {
 
 export function AnalyticsDashboard() {
   const [periodo, setPeriodo] = useState<string | undefined>();
-  const { resumen, docentes, dimensiones, evolucion, ranking, isLoading, error, isEmpty, refetch } =
-    useAnalytics({ periodo });
+  const {
+    resumen,
+    docentes,
+    dimensiones,
+    evolucion,
+    ranking,
+    isLoading,
+    error,
+    isEmpty,
+    refetch,
+  } = useAnalytics({ periodo });
 
   const periodos = useMemo(
-    () => evolucion.map((e) => e.periodo),
+    () => evolucion.map((e) => e.periodo).sort(comparePeriodos),
     [evolucion],
   );
 
@@ -39,7 +44,16 @@ export function AnalyticsDashboard() {
   }
 
   if (isEmpty) {
-    return <DashboardEmpty />;
+    return (
+      <div className="space-y-6">
+        <PeriodFilter
+          periodos={periodos}
+          selected={periodo}
+          onChange={setPeriodo}
+        />
+        <DashboardEmpty />
+      </div>
+    );
   }
 
   return (
