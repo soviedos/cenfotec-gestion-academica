@@ -46,7 +46,8 @@ class Settings(BaseSettings):
                 )
             if self.minio_secret_key.get_secret_value() == "minio_pass_dev":
                 raise ValueError(
-                    "MINIO_SECRET_KEY must be changed from the default in non-development environments"
+                    "MINIO_SECRET_KEY must be changed from"
+                    " the default in non-development environments"
                 )
             if not self.minio_secure:
                 raise ValueError("MINIO_SECURE must be True in non-development environments")

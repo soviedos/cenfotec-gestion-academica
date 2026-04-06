@@ -59,8 +59,8 @@ const mockDimensiones: DimensionPromedio[] = [
 ];
 
 const mockEvolucion: PeriodoMetrica[] = [
-  { periodo: "2025-1", promedio: 85, evaluaciones_count: 5 },
-  { periodo: "2025-2", promedio: 90, evaluaciones_count: 5 },
+  { periodo: "C1 2025", promedio: 85, evaluaciones_count: 5 },
+  { periodo: "C2 2025", promedio: 90, evaluaciones_count: 5 },
 ];
 
 const mockRanking: RankingDocente[] = [
@@ -78,6 +78,8 @@ vi.mock("@/lib/api/analytics", () => ({
   fetchDimensiones: vi.fn(),
   fetchEvolucion: vi.fn(),
   fetchRanking: vi.fn(),
+  fetchEscuelas: vi.fn(),
+  fetchCursos: vi.fn(),
 }));
 
 import {
@@ -86,6 +88,8 @@ import {
   fetchDimensiones,
   fetchEvolucion,
   fetchRanking,
+  fetchEscuelas,
+  fetchCursos,
 } from "@/lib/api/analytics";
 
 const mockedFetchResumen = vi.mocked(fetchResumen);
@@ -93,8 +97,12 @@ const mockedFetchDocentes = vi.mocked(fetchDocentePromedios);
 const mockedFetchDimensiones = vi.mocked(fetchDimensiones);
 const mockedFetchEvolucion = vi.mocked(fetchEvolucion);
 const mockedFetchRanking = vi.mocked(fetchRanking);
+const mockedFetchEscuelas = vi.mocked(fetchEscuelas);
+const mockedFetchCursos = vi.mocked(fetchCursos);
 
 function setupMocks(overrides?: { empty?: boolean }) {
+  mockedFetchEscuelas.mockResolvedValue(["Escuela de Ingeniería"]);
+  mockedFetchCursos.mockResolvedValue(["Programación I"]);
   if (overrides?.empty) {
     mockedFetchResumen.mockResolvedValue({
       promedio_global: 0,
@@ -127,6 +135,8 @@ describe("AnalyticsDashboard", () => {
     mockedFetchDimensiones.mockReturnValue(new Promise(() => {}));
     mockedFetchEvolucion.mockReturnValue(new Promise(() => {}));
     mockedFetchRanking.mockReturnValue(new Promise(() => {}));
+    mockedFetchEscuelas.mockResolvedValue([]);
+    mockedFetchCursos.mockResolvedValue([]);
 
     const { container } = render(<AnalyticsDashboard />);
     const pulseElements = container.querySelectorAll(".animate-pulse");
@@ -169,6 +179,8 @@ describe("AnalyticsDashboard", () => {
     mockedFetchDimensiones.mockRejectedValue(new Error("Network error"));
     mockedFetchEvolucion.mockRejectedValue(new Error("Network error"));
     mockedFetchRanking.mockRejectedValue(new Error("Network error"));
+    mockedFetchEscuelas.mockResolvedValue([]);
+    mockedFetchCursos.mockResolvedValue([]);
 
     render(<AnalyticsDashboard />);
     await waitFor(() => {
@@ -177,31 +189,41 @@ describe("AnalyticsDashboard", () => {
     expect(screen.getByText("Reintentar")).toBeInTheDocument();
   });
 
-  it("renders period filter buttons from evolucion data", async () => {
+  it("renders modalidad filter buttons from evolucion data", async () => {
     setupMocks();
     render(<AnalyticsDashboard />);
     await waitFor(() => {
-      expect(screen.getByText("2025-1")).toBeInTheDocument();
+      expect(screen.getByText("Cuatrimestral")).toBeInTheDocument();
     });
-    expect(screen.getByText("2025-2")).toBeInTheDocument();
   });
 
-  it("clicking a period filter refetches with periodo param", async () => {
+  it("clicking a modalidad then period filter refetches with params", async () => {
     setupMocks();
     render(<AnalyticsDashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText("2025-1")).toBeInTheDocument();
+      expect(screen.getByText("Cuatrimestral")).toBeInTheDocument();
     });
 
     const user = userEvent.setup();
-    await user.click(screen.getByText("2025-1"));
+    // First select modalidad
+    await user.click(screen.getByText("Cuatrimestral"));
+
+    // Now period buttons should appear
+    await waitFor(() => {
+      expect(screen.getByText("C1 2025")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText("C1 2025"));
 
     // After clicking, fetchResumen should have been called again with periodo
     await waitFor(() => {
       expect(mockedFetchResumen).toHaveBeenCalledWith(
-        "2025-1",
+        "C1 2025",
         expect.any(AbortSignal),
+        "CUATRIMESTRAL",
+        undefined,
+        undefined,
       );
     });
   });

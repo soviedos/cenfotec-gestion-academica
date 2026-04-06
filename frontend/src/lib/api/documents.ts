@@ -37,4 +37,8 @@ export async function deleteDocument(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/documentos/${id}`);
 }
 
+export function getDocumentDownloadUrl(id: string): string {
+  return `/api/v1/documentos/${id}/download`;
+}
+
 export { ApiClientError };

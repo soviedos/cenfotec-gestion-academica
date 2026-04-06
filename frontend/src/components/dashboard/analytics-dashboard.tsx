@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BarChart3, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { comparePeriodos } from "@/lib/periodo-sort";
+import { fetchEscuelas, fetchCursos } from "@/lib/api/analytics";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { DocenteBarChart } from "@/components/dashboard/docente-bar-chart";
 import { DimensionRadarChart } from "@/components/dashboard/dimension-radar-chart";
@@ -15,9 +16,16 @@ import {
   DashboardEmpty,
   DashboardError,
 } from "@/components/dashboard/dashboard-states";
+import type { Modalidad } from "@/types";
 
 export function AnalyticsDashboard() {
+  const [modalidad, setModalidad] = useState<Modalidad | undefined>();
   const [periodo, setPeriodo] = useState<string | undefined>();
+  const [escuela, setEscuela] = useState<string | undefined>();
+  const [curso, setCurso] = useState<string | undefined>();
+  const [escuelas, setEscuelas] = useState<string[]>([]);
+  const [cursos, setCursos] = useState<string[]>([]);
+
   const {
     resumen,
     docentes,
@@ -28,7 +36,31 @@ export function AnalyticsDashboard() {
     error,
     isEmpty,
     refetch,
-  } = useAnalytics({ periodo });
+  } = useAnalytics({ periodo, modalidad, escuela, curso });
+
+  // Fetch escuelas when modalidad/periodo change
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchEscuelas({ modalidad, periodo }, controller.signal)
+      .then(setEscuelas)
+      .catch(() => {});
+    return () => controller.abort();
+  }, [modalidad, periodo]);
+
+  // Fetch cursos when escuela/modalidad/periodo change
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCursos({ escuela, modalidad, periodo }, controller.signal)
+      .then(setCursos)
+      .catch(() => {});
+    return () => controller.abort();
+  }, [escuela, modalidad, periodo]);
+
+  // Reset curso when escuela changes
+  const handleEscuelaChange = (v: string | undefined) => {
+    setEscuela(v);
+    setCurso(undefined);
+  };
 
   const periodos = useMemo(
     () => evolucion.map((e) => e.periodo).sort(comparePeriodos),
@@ -48,8 +80,16 @@ export function AnalyticsDashboard() {
       <div className="space-y-6">
         <PeriodFilter
           periodos={periodos}
-          selected={periodo}
-          onChange={setPeriodo}
+          selectedModalidad={modalidad}
+          selectedPeriodo={periodo}
+          escuelas={escuelas}
+          cursos={cursos}
+          selectedEscuela={escuela}
+          selectedCurso={curso}
+          onModalidadChange={setModalidad}
+          onPeriodoChange={setPeriodo}
+          onEscuelaChange={handleEscuelaChange}
+          onCursoChange={setCurso}
         />
         <DashboardEmpty />
       </div>
@@ -61,8 +101,16 @@ export function AnalyticsDashboard() {
       {/* Filters */}
       <PeriodFilter
         periodos={periodos}
-        selected={periodo}
-        onChange={setPeriodo}
+        selectedModalidad={modalidad}
+        selectedPeriodo={periodo}
+        escuelas={escuelas}
+        cursos={cursos}
+        selectedEscuela={escuela}
+        selectedCurso={curso}
+        onModalidadChange={setModalidad}
+        onPeriodoChange={setPeriodo}
+        onEscuelaChange={handleEscuelaChange}
+        onCursoChange={setCurso}
       />
 
       {/* KPI Cards */}

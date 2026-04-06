@@ -19,6 +19,9 @@ import type {
 
 export interface AnalyticsFilters {
   periodo?: string;
+  modalidad?: string;
+  escuela?: string;
+  curso?: string;
 }
 
 interface AnalyticsState {
@@ -60,26 +63,58 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
       const f = filtersRef.current;
 
       // Fire all requests in parallel but settle progressively
-      const resumenP = fetchResumen(f.periodo, signal).then((resumen) => {
+      const resumenP = fetchResumen(
+        f.periodo,
+        signal,
+        f.modalidad,
+        f.escuela,
+        f.curso,
+      ).then((resumen) => {
         setState((prev) => ({ ...prev, resumen }));
       });
       const docentesP = fetchDocentePromedios(
-        { periodo: f.periodo, limit: 20 },
+        {
+          periodo: f.periodo,
+          modalidad: f.modalidad,
+          escuela: f.escuela,
+          curso: f.curso,
+          limit: 20,
+        },
         signal,
       ).then((docentes) => {
         setState((prev) => ({ ...prev, docentes }));
       });
       const dimensionesP = fetchDimensiones(
-        { periodo: f.periodo },
+        {
+          periodo: f.periodo,
+          modalidad: f.modalidad,
+          escuela: f.escuela,
+          curso: f.curso,
+        },
         signal,
       ).then((dimensiones) => {
         setState((prev) => ({ ...prev, dimensiones }));
       });
-      const evolucionP = fetchEvolucion(undefined, signal).then((evolucion) => {
-        setState((prev) => ({ ...prev, evolucion: sortByPeriodo(evolucion) }));
+      const evolucionP = fetchEvolucion(
+        undefined,
+        signal,
+        f.modalidad,
+        f.escuela,
+        f.curso,
+      ).then((evolucion) => {
+        setState((prev) => ({
+          ...prev,
+          evolucion: sortByPeriodo(evolucion),
+        }));
       });
       const rankingP = fetchRanking(
-        { periodo: f.periodo, limit: 10 },
+        {
+          periodo: f.periodo,
+          modalidad: f.modalidad,
+          escuela: f.escuela,
+          curso: f.curso,
+          limit: 10,
+        },
         signal,
       ).then((ranking) => {
         setState((prev) => ({ ...prev, ranking }));

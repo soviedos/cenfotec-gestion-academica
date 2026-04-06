@@ -9,6 +9,26 @@ from __future__ import annotations
 from app.application.parsing.constants import TOTAL_ESTUDIANTES_RE
 from app.application.parsing.schemas import CursoGrupo
 
+# ── Code-prefix → Escuela mapping ──────────────────────────────────────
+
+_PREFIX_ESCUELA: dict[str, str] = {
+    "SOFT": "Ingeniería del Software",
+    "BISOFT": "Ingeniería del Software",
+    "TSOFT": "Ingeniería del Software",
+    "PSWE": "Ingeniería del Software",
+    "INF": "Tecnologías de Información",
+    "TINF": "Tecnologías de Información",
+    "BITIC": "Tecnologías de Información",
+    "SINF": "Sistemas de Información",
+    "SINT": "Sistemas de Información",
+    "DIWEB": "Diseño Web",
+    "TWEB": "Diseño Web",
+    "COMP": "Computación",
+    "CIB": "Ciberseguridad",
+    "FUN": "Fundamentos",
+    "PIA": "Fundamentos",
+}
+
 
 def extract_courses(
     tables: list[list[list[str | None]]],
@@ -71,12 +91,19 @@ def _detect_school(rows: list[list[str | None]], header_idx: int) -> str:
     """Look backwards from header for a row that's a school name.
 
     School names are typically single-cell rows like ``"ESC ING DEL SOFTWARE"``.
+    Falls back to ``"DESCONOCIDA"`` — the caller may refine via code prefix.
     """
     for i in range(header_idx - 1, -1, -1):
         text = _clean(rows[i][0]) if rows[i] else ""
         if text and text.startswith("ESC "):
             return text
     return "DESCONOCIDA"
+
+
+def _escuela_from_codigo(codigo: str) -> str | None:
+    """Derive escuela from course code prefix (e.g. ``SOFT-09`` → ``Ingeniería del Software``)."""
+    prefix = codigo.split("-")[0] if "-" in codigo else ""
+    return _PREFIX_ESCUELA.get(prefix)
 
 
 def _parse_course_row(row: list[str | None], escuela: str) -> CursoGrupo | None:
@@ -96,7 +123,7 @@ def _parse_course_row(row: list[str | None], escuela: str) -> CursoGrupo | None:
     if not codigo or not _looks_like_course_code(codigo):
         return None
 
-    nombre = cells[1]
+    nombre = cells[1].replace("\n", " ")
     resp, mat = parse_total_estudiantes(cells[2])
     if resp is None:
         return None
@@ -110,8 +137,11 @@ def _parse_course_row(row: list[str | None], escuela: str) -> CursoGrupo | None:
     if pct_est is None or pct_dir is None or pct_auto is None:
         return None
 
+    # Prefer escuela from code prefix over table-level detection
+    resolved_escuela = _escuela_from_codigo(codigo) or escuela
+
     return CursoGrupo(
-        escuela=escuela,
+        escuela=resolved_escuela,
         codigo=codigo,
         nombre=nombre,
         estudiantes_respondieron=resp,

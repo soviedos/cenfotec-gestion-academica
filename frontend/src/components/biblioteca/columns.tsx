@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-import { ArrowUpDown, Copy, Check, FileText, Trash2 } from "lucide-react";
+import { ArrowUpDown, Copy, Check, Eye, FileText, Trash2 } from "lucide-react";
+import { getDocumentDownloadUrl } from "@/lib/api/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,25 +114,54 @@ function CopyableSha({ sha }: { sha: string }) {
   };
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delay={200}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={`Copiar SHA: ${sha}`}
-          >
-            {short}…
-            {copied ? (
-              <Check className="h-3 w-3 text-green-500" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-          </button>
+        <TooltipTrigger
+          render={
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={`Copiar SHA: ${sha}`}
+            />
+          }
+        >
+          {short}…
+          {copied ? (
+            <Check className="h-3 w-3 text-green-500" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
         </TooltipTrigger>
         <TooltipContent side="top" className="font-mono text-xs">
           {sha}
         </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ViewPdfButton({ documento }: { documento: Documento }) {
+  const handleView = () => {
+    window.open(getDocumentDownloadUrl(documento.id), "_blank", "noopener");
+  };
+
+  return (
+    <TooltipProvider delay={200}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={handleView}
+              aria-label={`Ver ${documento.nombre_archivo}`}
+            />
+          }
+        >
+          <Eye className="h-4 w-4" />
+        </TooltipTrigger>
+        <TooltipContent side="top">Ver PDF original</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -146,15 +176,17 @@ function DeleteButton({
 }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          aria-label={`Eliminar ${documento.nombre_archivo}`}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            aria-label={`Eliminar ${documento.nombre_archivo}`}
+          />
+        }
+      >
+        <Trash2 className="h-4 w-4" />
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -254,17 +286,18 @@ export function getColumns(
       ),
       size: 180,
     }),
-    ...(onDelete
-      ? [
-          columnHelper.display({
-            id: "actions",
-            header: "",
-            cell: (info) => (
-              <DeleteButton documento={info.row.original} onDelete={onDelete} />
-            ),
-            size: 50,
-          }),
-        ]
-      : []),
+    columnHelper.display({
+      id: "actions",
+      header: "",
+      cell: (info) => (
+        <div className="flex items-center gap-0.5">
+          <ViewPdfButton documento={info.row.original} />
+          {onDelete && (
+            <DeleteButton documento={info.row.original} onDelete={onDelete} />
+          )}
+        </div>
+      ),
+      size: 90,
+    }),
   ];
 }

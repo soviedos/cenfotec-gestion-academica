@@ -17,9 +17,9 @@ from __future__ import annotations
 import time
 
 import fitz  # PyMuPDF
+
 from app.application.parsing.constants import PARSER_VERSION
-from app.application.parsing.errors import (ParseError, ParseMetadata,
-                                            ParseResult, ParseWarning)
+from app.application.parsing.errors import ParseError, ParseMetadata, ParseResult, ParseWarning
 from app.application.parsing.extractors.comments import extract_comments
 from app.application.parsing.extractors.courses import extract_courses
 from app.application.parsing.extractors.header import extract_header
@@ -27,8 +27,7 @@ from app.application.parsing.extractors.metrics import extract_metrics
 from app.application.parsing.schemas import ParsedEvaluacion, PeriodoData
 from app.domain.entities.enums import Modalidad
 from app.domain.exceptions import ValidationError as DomainValidationError
-from app.domain.periodo import (determinar_modalidad, normalizar_periodo,
-                                parse_periodo)
+from app.domain.periodo import determinar_modalidad, normalizar_periodo, parse_periodo
 
 
 def parse_evaluacion(pdf_bytes: bytes) -> ParseResult:
@@ -295,9 +294,7 @@ def _open_document(pdf_bytes: bytes, errors: list[ParseError]) -> fitz.Document 
         return None
 
     if len(doc) == 0:
-        errors.append(
-            ParseError(stage="open", code="EMPTY_PDF", message="El PDF tiene 0 páginas")
-        )
+        errors.append(ParseError(stage="open", code="EMPTY_PDF", message="El PDF tiene 0 páginas"))
         doc.close()
         return None
 

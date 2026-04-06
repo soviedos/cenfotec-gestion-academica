@@ -1,4 +1,5 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from fastapi.responses import Response
 
 from app.api.deps import DbSession, FileStorageDep, get_gemini_gateway
 from app.application.services.document_service import DocumentService
@@ -72,3 +73,28 @@ async def delete_documento(
     service = DocumentService(repo, storage)
     await service.delete_document(doc_uuid)
     await db.commit()
+
+
+@router.get("/{documento_id}/download")
+async def download_documento(
+    documento_id: str,
+    db: DbSession,
+    storage: FileStorageDep,
+):
+    """Descargar el archivo PDF original de un documento."""
+    import uuid
+
+    doc_uuid = uuid.UUID(documento_id)
+    repo = DocumentoRepository(db)
+    documento = await repo.get_by_id(doc_uuid)
+    if documento is None:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    pdf_bytes = await storage.download(documento.storage_path)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{documento.nombre_archivo}"',
+        },
+    )

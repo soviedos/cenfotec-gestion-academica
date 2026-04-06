@@ -383,7 +383,7 @@ class QualitativeRepository:
         Only the most recent ``_MAX_TEXTS`` comments are loaded into
         memory to prevent OOM with large datasets.
         """
-        _MAX_TEXTS = 2000
+        max_texts = 2000
 
         sub = self._base_query(
             periodo=periodo,
@@ -394,7 +394,7 @@ class QualitativeRepository:
             tipo=tipo,
         ).subquery()
 
-        stmt = select(sub.c.texto).order_by(sub.c.created_at.desc()).limit(_MAX_TEXTS)
+        stmt = select(sub.c.texto).order_by(sub.c.created_at.desc()).limit(max_texts)
         rows = (await self.session.execute(stmt)).all()
 
         counter: Counter[str] = Counter()
