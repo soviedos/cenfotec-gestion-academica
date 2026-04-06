@@ -13,6 +13,7 @@ class EvaluacionRead(TimestampSchema):
     documento_id: uuid.UUID
     docente_nombre: str
     periodo: str
+    modalidad: str
     materia: str | None
     puntaje_general: float | None
     resumen_ia: str | None

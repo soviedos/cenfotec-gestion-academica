@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 
 from pydantic import Field
@@ -12,8 +13,8 @@ from app.domain.schemas.common import BaseSchema, PaginatedItems
 class AlertaResponse(BaseSchema):
     """Single alert detail — maps from the ``Alerta`` entity."""
 
-    id: str
-    evaluacion_id: str | None = None
+    id: uuid.UUID
+    evaluacion_id: uuid.UUID | None = None
     docente_nombre: str
     curso: str
     periodo: str

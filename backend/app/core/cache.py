@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -27,6 +28,7 @@ class TTLCache:
     def __init__(self, default_ttl: int = 300) -> None:
         self._default_ttl = default_ttl
         self._redis: aioredis.Redis | None = None
+        self._local: dict[str, tuple[float, Any]] = {}
 
     async def _get_redis(self) -> aioredis.Redis | None:
         """Lazy-connect to Redis; return None if unavailable."""
@@ -41,14 +43,21 @@ class TTLCache:
             await self._redis.ping()
             return self._redis
         except Exception:
-            logger.debug("Redis not reachable — cache disabled")
+            logger.debug("Redis not reachable — using in-memory fallback")
             self._redis = None
             return None
 
     async def get(self, key: str) -> Any | None:
         r = await self._get_redis()
         if r is None:
-            return None
+            entry = self._local.get(key)
+            if entry is None:
+                return None
+            expiry, value = entry
+            if expiry and time.monotonic() > expiry:
+                del self._local[key]
+                return None
+            return value
         try:
             raw = await r.get(f"{_KEY_PREFIX}{key}")
             if raw is None:
@@ -59,14 +68,17 @@ class TTLCache:
             return None
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+        effective_ttl = ttl if ttl is not None else self._default_ttl
         r = await self._get_redis()
         if r is None:
+            expiry = time.monotonic() + effective_ttl if effective_ttl else 0.0
+            self._local[key] = (expiry, value)
             return
         try:
             await r.set(
                 f"{_KEY_PREFIX}{key}",
                 json.dumps(value, default=str),
-                ex=ttl if ttl is not None else self._default_ttl,
+                ex=effective_ttl,
             )
         except Exception:
             logger.debug("Cache set error for key %s", key)
@@ -75,6 +87,12 @@ class TTLCache:
         """Remove all entries whose key starts with *prefix* (or all cache keys)."""
         r = await self._get_redis()
         if r is None:
+            if not prefix:
+                self._local.clear()
+            else:
+                to_delete = [k for k in self._local if k.startswith(prefix)]
+                for k in to_delete:
+                    del self._local[k]
             return
         try:
             pattern = f"{_KEY_PREFIX}{prefix}*"
