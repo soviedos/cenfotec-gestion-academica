@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client";
+import { buildQuery } from "@/lib/api/query-builder";
 import type {
   ComentarioAnalisis,
   FiltrosCualitativos,
@@ -7,17 +8,6 @@ import type {
   SentimientoDistribucion,
   TemaDistribucion,
 } from "@/types";
-
-function buildQuery(params: Record<string, string | number | undefined>) {
-  const sp = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") {
-      sp.set(key, String(value));
-    }
-  }
-  const q = sp.toString();
-  return q ? `?${q}` : "";
-}
 
 export async function fetchFiltrosCualitativos(
   signal?: AbortSignal,

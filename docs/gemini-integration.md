@@ -1,7 +1,7 @@
 # Integración con Gemini API
 
 > Arquitectura, pipeline RAG, prompt engineering y auditoría.
-> Última actualización: 2026-06-04
+> Última actualización: 2026-04-08
 
 ---
 
@@ -183,6 +183,21 @@ GeminiError (base)
 | `genai_errors.ServerError` | `GeminiError`          | Errores del servidor Gemini  |
 | `TimeoutError`             | `GeminiTimeoutError`   | Timeout de red               |
 | `Exception`                | `GeminiError`          | Cualquier error inesperado   |
+
+### Retry con Backoff Exponencial
+
+El `GeminiGateway` incluye reintentos automáticos para errores transitorios:
+
+| Parámetro           | Valor por defecto | Descripción                    |
+| ------------------- | ----------------- | ------------------------------ |
+| `_MAX_RETRIES`      | `3`               | Número máximo de reintentos    |
+| `_RETRY_BASE_DELAY` | `1.0` s           | Delay base entre reintentos    |
+| `_RETRY_MAX_DELAY`  | `16.0` s          | Delay máximo (cap del backoff) |
+
+**Excepciones retriables:** `genai_errors.ServerError`, `TimeoutError`.
+**Excepciones NO retriables:** `genai_errors.ClientError` y cualquier otro error se propagan inmediatamente.
+
+Cada reintento aplica backoff exponencial: `delay = min(base × 2^attempt, max_delay)`.
 
 ### Auditoría de Errores
 

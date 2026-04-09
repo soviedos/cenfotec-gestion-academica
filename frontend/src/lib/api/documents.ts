@@ -1,4 +1,5 @@
 import { apiClient, ApiClientError } from "@/lib/api-client";
+import { buildQuery } from "@/lib/api/query-builder";
 import type {
   Documento,
   DocumentoFilterParams,
@@ -17,16 +18,10 @@ export async function uploadDocument(
 
 export async function listDocuments(
   params: DocumentoFilterParams = {},
+  signal?: AbortSignal,
 ): Promise<PaginatedResponse<Documento>> {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") {
-      searchParams.set(key, String(value));
-    }
-  }
-  const query = searchParams.toString();
-  const endpoint = `/api/v1/documentos/${query ? `?${query}` : ""}`;
-  return apiClient.get<PaginatedResponse<Documento>>(endpoint);
+  const endpoint = `/api/v1/documentos/${buildQuery(params)}`;
+  return apiClient.get<PaginatedResponse<Documento>>(endpoint, signal);
 }
 
 export async function listPeriodos(): Promise<string[]> {

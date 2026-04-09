@@ -1,7 +1,7 @@
 # Contratos de API
 
 > Especificación completa de endpoints REST, request/response schemas y convenciones.
-> Última actualización: 2026-06-04
+> Última actualización: 2026-04-08
 
 Base URL: `http://localhost:8000/api/v1`
 
@@ -19,7 +19,8 @@ Documentación interactiva (Swagger): `http://localhost:8000/docs`
 6. [Query](#query) (1 endpoint) — Consultas IA (RAG + Gemini)
 7. [Dashboard](#dashboard) (1 endpoint)
 8. [Alertas](#alertas) (4 endpoints)
-9. [Convenciones](#convenciones)
+9. [Config](#config) (1 endpoint)
+10. [Convenciones](#convenciones)
 
 ---
 
@@ -508,6 +509,47 @@ PATCH /api/v1/alertas/{alerta_id}/estado
 | `estado`    | string | Sí        | `revisada`, `resuelta`, `descartada` |
 
 **Response 200:** `AlertaResponse` actualizada.
+
+---
+
+## Config
+
+### Umbrales de alerta
+
+```
+GET /api/v1/config/alert-thresholds
+```
+
+Retorna los umbrales configurados para el motor de alertas. Permite al frontend sincronizar sus constantes con la fuente de verdad del backend (`alert_rules.py`).
+
+**Response 200:**
+
+```json
+{
+  "bajo_desempeno": {
+    "high": 60.0,
+    "medium": 70.0,
+    "low": 80.0
+  },
+  "caida": {
+    "high": 15.0,
+    "medium": 10.0,
+    "low": 5.0
+  },
+  "sentimiento": {
+    "high": 20.0,
+    "medium": 10.0,
+    "low": 5.0
+  },
+  "patron": {
+    "mejora_negativo": 0.5,
+    "actitud_negativo": 0.3,
+    "otro": 0.4
+  }
+}
+```
+
+Cada categoría mapea a las constantes en `backend/app/domain/alert_rules.py` ([AL-20] a [AL-23]).
 
 ---
 

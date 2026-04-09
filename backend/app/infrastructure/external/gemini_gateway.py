@@ -16,6 +16,7 @@ network request.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -52,6 +53,12 @@ _RECOVERY_TIMEOUT = 60  # seconds before trying again
 
 
 _ANALYSIS_BATCH_SIZE = 25
+
+# Retry defaults (exponential backoff)
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 1.0  # seconds
+_RETRY_MAX_DELAY = 16.0  # seconds
+_RETRYABLE_EXCEPTIONS = (genai_errors.ServerError, TimeoutError)
 
 
 class GeminiGatewayProtocol(Protocol):
@@ -126,16 +133,58 @@ class GeminiGateway:
         timeout_ms: int = _DEFAULT_TIMEOUT_MS,
         failure_threshold: int = _FAILURE_THRESHOLD,
         recovery_timeout: int = _RECOVERY_TIMEOUT,
+        max_retries: int = _MAX_RETRIES,
     ) -> None:
         if not api_key:
             raise GeminiUnavailableError()
         self._client = genai.Client(api_key=api_key)
         self._model = model
         self._timeout_ms = timeout_ms
+        self._max_retries = max_retries
         self._breaker = _CircuitBreaker(
             failure_threshold=failure_threshold,
             recovery_timeout=recovery_timeout,
         )
+
+    async def _call_with_retry(
+        self,
+        call: Any,
+        *,
+        model: str,
+        contents: str,
+        config: types.GenerateContentConfig,
+    ) -> Any:
+        """Execute a Gemini API call with exponential backoff on transient errors.
+
+        Retries on server errors and timeouts up to ``_max_retries`` times.
+        Client errors (4xx) are *not* retried — they propagate immediately.
+        """
+        last_exc: Exception | None = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                return await call.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=config,
+                )
+            except _RETRYABLE_EXCEPTIONS as exc:
+                last_exc = exc
+                if attempt < self._max_retries:
+                    delay = min(
+                        _RETRY_BASE_DELAY * (2**attempt),
+                        _RETRY_MAX_DELAY,
+                    )
+                    logger.warning(
+                        "Gemini transient error (attempt %d/%d), retrying in %.1fs: %s",
+                        attempt + 1,
+                        self._max_retries + 1,
+                        delay,
+                        exc,
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
+        raise last_exc  # pragma: no cover — unreachable, satisfies type checker
 
     async def answer_query(
         self,
@@ -179,7 +228,8 @@ class GeminiGateway:
 
         start = time.monotonic()
         try:
-            response = await self._client.aio.models.generate_content(
+            response = await self._call_with_retry(
+                self._client.aio.models,
                 model=self._model,
                 contents=user_prompt,
                 config=config,
@@ -273,7 +323,8 @@ class GeminiGateway:
 
         start = time.monotonic()
         try:
-            response = await self._client.aio.models.generate_content(
+            response = await self._call_with_retry(
+                self._client.aio.models,
                 model=self._model,
                 contents=user_prompt,
                 config=config,
