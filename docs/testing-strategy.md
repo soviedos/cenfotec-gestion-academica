@@ -1,7 +1,7 @@
 # Estrategia de Testing
 
 > Pirámide de tests, herramientas, fixtures y convenciones.
-> Última actualización: 2026-06-04
+> Última actualización: 2026-04-08
 
 ---
 
@@ -39,7 +39,7 @@
 
 ### Capas de Tests
 
-#### Unit Tests (`tests/unit/`) — 23 archivos
+#### Unit Tests (`tests/unit/`) — 24 archivos
 
 Tests de funciones puras sin I/O ni base de datos:
 
@@ -49,7 +49,8 @@ Tests de funciones puras sin I/O ni base de datos:
 - **Query:** `test_query_service.py`, `test_prompt_templates.py` — pipeline RAG
 - **Reglas de negocio:** `test_business_rules.py` — 150+ reglas BR-\*
 - **Schemas:** `test_schemas.py`, `test_qualitative_schemas.py`
-- **Infraestructura:** `test_cache.py`, `test_rate_limiter.py`, `test_gemini_exceptions.py`
+- **Infraestructura:** `test_cache.py`, `test_rate_limiter.py`, `test_gemini_exceptions.py`, `test_gemini_retry.py`
+- **Config:** `test_config_routes.py` — endpoint de umbrales de alerta
 - **Otros:** `test_exceptions.py`, `test_factories.py`, `test_periodo.py`
 
 ```bash

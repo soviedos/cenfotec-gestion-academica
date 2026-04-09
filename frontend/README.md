@@ -1,17 +1,19 @@
 # Frontend — Evaluaciones Docentes
 
-> Aplicación web construida con Next.js 14 y TypeScript, usando App Router en formato MPA.
+> Aplicación web construida con Next.js 16 y TypeScript, usando App Router en formato MPA.
 
 ---
 
 ## Stack
 
-| Tecnología                                    | Uso                            |
-| --------------------------------------------- | ------------------------------ |
-| [Next.js 14](https://nextjs.org/)             | Framework React con App Router |
-| [TypeScript](https://www.typescriptlang.org/) | Tipado estático                |
-| [Tailwind CSS](https://tailwindcss.com/)      | Estilos utilitarios            |
-| [PostCSS](https://postcss.org/)               | Procesamiento de CSS           |
+| Tecnología                                      | Uso                               |
+| ----------------------------------------------- | --------------------------------- |
+| [Next.js 16](https://nextjs.org/)               | Framework React 19 con App Router |
+| [TypeScript 6](https://www.typescriptlang.org/) | Tipado estático                   |
+| [Tailwind CSS 4](https://tailwindcss.com/)      | Estilos utilitarios               |
+| [ESLint 9](https://eslint.org/)                 | Linting (flat config)             |
+| [Vitest](https://vitest.dev/)                   | Tests unitarios                   |
+| [PostCSS](https://postcss.org/)                 | Procesamiento de CSS              |
 
 ---
 

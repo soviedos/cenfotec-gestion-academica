@@ -155,6 +155,13 @@ export function compareSeveridad(a: Severidad, b: Severidad): number {
 
 // ════════════════════════════════════════════════════════════════════════
 //  Alert thresholds [AL-20, AL-21]
+//
+//  Authoritative source: backend/app/domain/alert_rules.py
+//  Runtime endpoint:     GET /api/v1/config/alert-thresholds
+//
+//  These constants are kept as static defaults for immediate rendering.
+//  If dynamic thresholds are needed, fetch from the config endpoint
+//  and override at runtime.
 // ════════════════════════════════════════════════════════════════════════
 
 /** Absolute performance thresholds [AL-20]. */

@@ -28,29 +28,35 @@ backend/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                      → Punto de entrada FastAPI
-│   ├── config.py                    → Settings con pydantic-settings
+│   ├── core/
+│   │   ├── config.py                → Settings con pydantic-settings
+│   │   ├── cache.py                 → Caché y rate limiting
+│   │   └── logging.py               → Configuración de logging
 │   ├── api/
-│   │   ├── deps.py                  → Dependencias inyectables (DB session, auth)
+│   │   ├── deps.py                  → Dependencias inyectables (DB session, repos)
+│   │   ├── rate_limit.py            → Rate limiter para endpoints
 │   │   └── v1/
 │   │       ├── router.py            → Agregador de routers v1
 │   │       ├── evaluaciones.py      → CRUD de evaluaciones
-│   │       └── documentos.py        → Upload y gestión de PDFs
-│   ├── models/                      → Modelos SQLAlchemy (tablas)
-│   ├── schemas/                     → Schemas Pydantic (request/response)
-│   ├── services/                    → Lógica de negocio
-│   │   ├── pdf_parser.py            → Extracción de texto de PDFs
-│   │   ├── gemini_analyzer.py       → Integración con Gemini API
-│   │   ├── embedding_service.py     → Generación de embeddings
-│   │   └── reporte_generator.py     → Generación de reportes
-│   ├── tasks/                       → Tareas Celery
-│   │   ├── celery_app.py            → Configuración de Celery
-│   │   ├── pdf_processing.py        → Tarea: procesar PDF subido
-│   │   └── analysis.py              → Tarea: análisis con IA
-│   ├── db/
-│   │   ├── session.py               → Engine y SessionLocal
-│   │   └── migrations/              → Alembic (env.py, versions/)
-│   └── storage/
-│       └── minio_client.py          → Cliente MinIO
+│   │       ├── documentos.py        → Upload y gestión de PDFs
+│   │       ├── config_routes.py     → Endpoint de configuración (umbrales)
+│   │       └── ...                  → analytics, qualitative, query, etc.
+│   ├── domain/                      → Lógica de negocio pura
+│   │   ├── alert_rules.py           → Reglas y umbrales de alertas
+│   │   ├── periodo.py               → Parsing y ordenamiento temporal
+│   │   ├── entities/                → Entidades del dominio (SQLAlchemy)
+│   │   └── schemas/                 → Schemas Pydantic (request/response)
+│   ├── application/                 → Servicios de aplicación
+│   │   ├── services/                → Orquestadores de negocio
+│   │   ├── parsing/                 → Extracción de texto de PDFs
+│   │   └── classification/          → Clasificación de comentarios
+│   ├── infrastructure/              → Adaptadores externos
+│   │   ├── external/
+│   │   │   └── gemini_gateway.py    → Wrapper Gemini con retry + circuit breaker
+│   │   ├── repositories/            → Repositorios (PostgreSQL)
+│   │   ├── storage/                 → MinIO client
+│   │   └── tasks/                   → Tareas Celery
+├── scripts/                         → Scripts operacionales (backfill, reanalyze)
 ├── tests/
 │   ├── conftest.py                  → Fixtures compartidos (TestClient, DB)
 │   ├── unit/                        → Tests unitarios

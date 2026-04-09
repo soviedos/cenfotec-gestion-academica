@@ -1,6 +1,15 @@
 from fastapi import APIRouter
 
-from app.api.v1 import alertas, analytics, dashboard, documentos, evaluaciones, qualitative, query
+from app.api.v1 import (
+    alertas,
+    analytics,
+    config_routes,
+    dashboard,
+    documentos,
+    evaluaciones,
+    qualitative,
+    query,
+)
 
 api_router = APIRouter()
 
@@ -11,3 +20,4 @@ api_router.include_router(qualitative.router, prefix="/qualitative", tags=["qual
 api_router.include_router(query.router, prefix="/query", tags=["query"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(alertas.router, prefix="/alertas", tags=["alertas"])
+api_router.include_router(config_routes.router, prefix="/config", tags=["config"])
