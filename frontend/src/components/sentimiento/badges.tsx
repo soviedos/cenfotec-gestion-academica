@@ -1,39 +1,21 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-const SENTIMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  positivo: { label: "Positivo", color: "text-emerald-700", bg: "bg-emerald-100" },
-  neutro: { label: "Neutro", color: "text-slate-700", bg: "bg-slate-100" },
-  mixto: { label: "Mixto", color: "text-amber-700", bg: "bg-amber-100" },
-  negativo: { label: "Negativo", color: "text-red-700", bg: "bg-red-100" },
-};
-
-const TIPO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  fortaleza: { label: "Fortaleza", color: "text-emerald-700", bg: "bg-emerald-100" },
-  mejora: { label: "Mejora", color: "text-amber-700", bg: "bg-amber-100" },
-  observacion: { label: "Observación", color: "text-blue-700", bg: "bg-blue-100" },
-};
-
-const TEMA_LABELS: Record<string, string> = {
-  metodologia: "Metodología",
-  dominio_tema: "Dominio del tema",
-  comunicacion: "Comunicación",
-  evaluacion: "Evaluación",
-  puntualidad: "Puntualidad",
-  material: "Material",
-  actitud: "Actitud",
-  tecnologia: "Tecnología",
-  organizacion: "Organización",
-  otro: "Otro",
-};
+import {
+  sentimientoBadgeStyle,
+  tipoComentarioBadgeStyle,
+  temaLabel,
+  sentimientoLabel,
+  tipoComentarioLabel,
+  SENTIMIENTOS,
+  TEMAS,
+} from "@/lib/business-rules";
+import type { Sentimiento, TipoComentario } from "@/types";
 
 export function SentimentBadge({ value }: { value: string | null }) {
-  const cfg = SENTIMENT_CONFIG[value ?? ""] ?? {
-    label: value ?? "—",
-    color: "text-muted-foreground",
-    bg: "bg-muted",
-  };
+  const cfg = value
+    ? sentimientoBadgeStyle(value as Sentimiento)
+    : { label: "—", color: "text-muted-foreground", bg: "bg-muted" };
   return (
     <span
       className={cn(
@@ -48,11 +30,7 @@ export function SentimentBadge({ value }: { value: string | null }) {
 }
 
 export function TipoBadge({ value }: { value: string }) {
-  const cfg = TIPO_CONFIG[value] ?? {
-    label: value,
-    color: "text-muted-foreground",
-    bg: "bg-muted",
-  };
+  const cfg = tipoComentarioBadgeStyle(value as TipoComentario);
   return (
     <span
       className={cn(
@@ -69,13 +47,15 @@ export function TipoBadge({ value }: { value: string }) {
 export function TemaBadge({ value }: { value: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-      {TEMA_LABELS[value] ?? value}
+      {temaLabel(value)}
     </span>
   );
 }
 
-export function temaLabel(tema: string): string {
-  return TEMA_LABELS[tema] ?? tema;
-}
-
-export { SENTIMENT_CONFIG, TIPO_CONFIG, TEMA_LABELS };
+export {
+  temaLabel,
+  sentimientoLabel,
+  tipoComentarioLabel,
+  SENTIMIENTOS,
+  TEMAS,
+};

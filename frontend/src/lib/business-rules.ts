@@ -1,13 +1,12 @@
 /**
- * Business-rules constants and helpers for the frontend.
+ * UI display helpers for the frontend.
  *
- * Single source of truth for labels, colors, validation and display
- * utilities that mirror the backend domain enums and rules defined in
- * docs/business-rules/evaluation-rules.md.
+ * Single source of truth for labels, colors, and display utilities
+ * that map backend domain enums to user-facing presentation.
  *
- * Period parsing, modalidad inference, and chronological sorting are
- * handled exclusively by the backend. The frontend trusts the backend's
- * pre-sorted responses and modalidad fields.
+ * All business rules, validation, thresholds, and domain logic live
+ * exclusively in the backend. The frontend trusts backend responses
+ * and only handles presentation mapping.
  */
 
 import type {
@@ -60,11 +59,6 @@ const MODALIDAD_LABELS: Record<ModalidadConDesconocida, string> = {
 /** Friendly display label for a modalidad value. */
 export function modalidadLabel(m: ModalidadConDesconocida): string {
   return MODALIDAD_LABELS[m] ?? m;
-}
-
-/** Whether a string is a valid Modalidad (excluding DESCONOCIDA). */
-export function isModalidad(v: string): v is Modalidad {
-  return v === "CUATRIMESTRAL" || v === "MENSUAL" || v === "B2B";
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -124,31 +118,6 @@ const SEVERIDAD_ORDER: Record<Severidad, number> = {
 export function compareSeveridad(a: Severidad, b: Severidad): number {
   return (SEVERIDAD_ORDER[a] ?? 3) - (SEVERIDAD_ORDER[b] ?? 3);
 }
-
-// ════════════════════════════════════════════════════════════════════════
-//  Alert thresholds [AL-20, AL-21]
-//
-//  Authoritative source: backend/app/domain/alert_rules.py
-//  Runtime endpoint:     GET /api/v1/config/alert-thresholds
-//
-//  These constants are kept as static defaults for immediate rendering.
-//  If dynamic thresholds are needed, fetch from the config endpoint
-//  and override at runtime.
-// ════════════════════════════════════════════════════════════════════════
-
-/** Absolute performance thresholds [AL-20]. */
-export const ALERT_THRESHOLDS = {
-  HIGH: 60.0,
-  MEDIUM: 70.0,
-  LOW: 80.0,
-} as const;
-
-/** Drop between consecutive periods [AL-21]. */
-export const DROP_THRESHOLDS = {
-  HIGH: 15.0,
-  MEDIUM: 10.0,
-  LOW: 5.0,
-} as const;
 
 // ════════════════════════════════════════════════════════════════════════
 //  Tipo de alerta [AL-20–AL-23]
@@ -262,8 +231,8 @@ const TEMA_LABELS: Record<Tema, string> = {
   otro: "Otro",
 };
 
-export function temaLabel(t: Tema): string {
-  return TEMA_LABELS[t] ?? t;
+export function temaLabel(t: string): string {
+  return TEMA_LABELS[t as Tema] ?? t;
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -278,4 +247,66 @@ const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {
 
 export function tipoComentarioLabel(t: TipoComentario): string {
   return TIPO_COMENTARIO_LABELS[t] ?? t;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  Badge styling [BR-FE-21]
+//
+//  Tailwind classes for badge components. Kept here so every badge
+//  across the app uses the same color palette.
+// ════════════════════════════════════════════════════════════════════════
+
+export interface BadgeStyle {
+  label: string;
+  color: string;
+  bg: string;
+}
+
+const SENTIMIENTO_BADGE_STYLES: Record<Sentimiento, BadgeStyle> = {
+  positivo: {
+    label: "Positivo",
+    color: "text-emerald-700",
+    bg: "bg-emerald-100",
+  },
+  negativo: {
+    label: "Negativo",
+    color: "text-red-700",
+    bg: "bg-red-100",
+  },
+  mixto: { label: "Mixto", color: "text-amber-700", bg: "bg-amber-100" },
+  neutro: { label: "Neutro", color: "text-slate-700", bg: "bg-slate-100" },
+};
+
+export function sentimientoBadgeStyle(s: Sentimiento): BadgeStyle {
+  return (
+    SENTIMIENTO_BADGE_STYLES[s] ?? {
+      label: s,
+      color: "text-muted-foreground",
+      bg: "bg-muted",
+    }
+  );
+}
+
+const TIPO_COMENTARIO_BADGE_STYLES: Record<TipoComentario, BadgeStyle> = {
+  fortaleza: {
+    label: "Fortaleza",
+    color: "text-emerald-700",
+    bg: "bg-emerald-100",
+  },
+  mejora: { label: "Mejora", color: "text-amber-700", bg: "bg-amber-100" },
+  observacion: {
+    label: "Observación",
+    color: "text-blue-700",
+    bg: "bg-blue-100",
+  },
+};
+
+export function tipoComentarioBadgeStyle(t: TipoComentario): BadgeStyle {
+  return (
+    TIPO_COMENTARIO_BADGE_STYLES[t] ?? {
+      label: t,
+      color: "text-muted-foreground",
+      bg: "bg-muted",
+    }
+  );
 }

@@ -3,11 +3,11 @@
  *
  * Period validation, modalidad inference, and chronological sorting
  * are now handled exclusively by the backend. These tests focus on
- * remaining frontend-only logic: severidad ordering and modalidad type guard.
+ * remaining frontend-only logic: severidad ordering.
  */
 
 import { describe, expect, it } from "vitest";
-import { compareSeveridad, isModalidad } from "@/lib/business-rules";
+import { compareSeveridad } from "@/lib/business-rules";
 
 // ════════════════════════════════════════════════════════════════
 //  1. compareSeveridad stability
@@ -30,17 +30,4 @@ describe("compareSeveridad — stability & edge cases", () => {
     const sorted = [...items].sort((a, b) => compareSeveridad(a.sev, b.sev));
     expect(sorted.map((i) => i.name)).toEqual(["A", "B", "C"]);
   });
-});
-
-// ════════════════════════════════════════════════════════════════
-//  2. isModalidad rejects DESCONOCIDA strings
-// ════════════════════════════════════════════════════════════════
-
-describe("isModalidad strictness", () => {
-  it.each(["DESCONOCIDA", "desconocida", "cuatrimestral", "mensual", "b2b"])(
-    "rejects '%s' (wrong case or desconocida)",
-    (v) => {
-      expect(isModalidad(v)).toBe(false);
-    },
-  );
 });

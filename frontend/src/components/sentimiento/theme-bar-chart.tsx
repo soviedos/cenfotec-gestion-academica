@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { temaLabel } from "@/components/sentimiento/badges";
+import { temaLabel } from "@/lib/business-rules";
 import type { TemaDistribucion } from "@/types";
 
 interface ThemeBarChartProps {

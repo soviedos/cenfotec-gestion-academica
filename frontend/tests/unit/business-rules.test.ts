@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  ALERT_THRESHOLDS,
   compareSeveridad,
-  DROP_THRESHOLDS,
-  isModalidad,
   MODALIDADES,
   modalidadLabel,
   SENTIMIENTOS,
   sentimientoColor,
   sentimientoLabel,
   sentimientoTextClass,
+  sentimientoBadgeStyle,
   severidadBadgeVariant,
   severidadClasses,
   severidadLabel,
@@ -18,6 +16,7 @@ import {
   temaLabel,
   tipoAlertaLabel,
   tipoComentarioLabel,
+  tipoComentarioBadgeStyle,
   alertaEstadoLabel,
 } from "@/lib/business-rules";
 
@@ -40,14 +39,6 @@ describe("Modalidad helpers", () => {
     expect(modalidadLabel("MENSUAL")).toBe("Mensual");
     expect(modalidadLabel("B2B")).toBe("B2B");
     expect(modalidadLabel("DESCONOCIDA")).toBe("Desconocida");
-  });
-
-  it("isModalidad validates known values", () => {
-    expect(isModalidad("CUATRIMESTRAL")).toBe(true);
-    expect(isModalidad("MENSUAL")).toBe(true);
-    expect(isModalidad("B2B")).toBe(true);
-    expect(isModalidad("DESCONOCIDA")).toBe(false);
-    expect(isModalidad("garbage")).toBe(false);
   });
 });
 
@@ -92,26 +83,8 @@ describe("Severidad helpers", () => {
 //  Alert thresholds
 // ════════════════════════════════════════════════════════════════
 
-describe("Alert thresholds [AL-20, AL-21]", () => {
-  it("absolute thresholds descend", () => {
-    expect(ALERT_THRESHOLDS.HIGH).toBeLessThan(ALERT_THRESHOLDS.MEDIUM);
-    expect(ALERT_THRESHOLDS.MEDIUM).toBeLessThan(ALERT_THRESHOLDS.LOW);
-  });
-
-  it("drop thresholds descend", () => {
-    expect(DROP_THRESHOLDS.HIGH).toBeGreaterThan(DROP_THRESHOLDS.MEDIUM);
-    expect(DROP_THRESHOLDS.MEDIUM).toBeGreaterThan(DROP_THRESHOLDS.LOW);
-  });
-
-  it("matches backend constants", () => {
-    expect(ALERT_THRESHOLDS.HIGH).toBe(60.0);
-    expect(ALERT_THRESHOLDS.MEDIUM).toBe(70.0);
-    expect(ALERT_THRESHOLDS.LOW).toBe(80.0);
-    expect(DROP_THRESHOLDS.HIGH).toBe(15.0);
-    expect(DROP_THRESHOLDS.MEDIUM).toBe(10.0);
-    expect(DROP_THRESHOLDS.LOW).toBe(5.0);
-  });
-});
+// Alert thresholds are backend-only (backend/app/domain/alert_rules.py).
+// No frontend constants to test.
 
 // ════════════════════════════════════════════════════════════════
 //  Tipo de alerta
@@ -196,5 +169,24 @@ describe("Tipo comentario labels [BR-CLAS-01]", () => {
     expect(tipoComentarioLabel("fortaleza")).toBe("Fortaleza");
     expect(tipoComentarioLabel("mejora")).toBe("Mejora");
     expect(tipoComentarioLabel("observacion")).toBe("Observación");
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+//  Badge styles
+// ════════════════════════════════════════════════════════════════
+
+describe("Badge style helpers", () => {
+  it("sentimientoBadgeStyle returns label and classes", () => {
+    const style = sentimientoBadgeStyle("positivo");
+    expect(style.label).toBe("Positivo");
+    expect(style.color).toContain("emerald");
+    expect(style.bg).toContain("emerald");
+  });
+
+  it("tipoComentarioBadgeStyle returns label and classes", () => {
+    const style = tipoComentarioBadgeStyle("fortaleza");
+    expect(style.label).toBe("Fortaleza");
+    expect(style.color).toContain("emerald");
   });
 });

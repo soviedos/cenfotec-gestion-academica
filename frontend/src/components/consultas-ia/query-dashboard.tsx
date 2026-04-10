@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import {
   Card,
@@ -8,29 +9,61 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuery } from "@/hooks/use-query";
+import { MODALIDADES } from "@/lib/business-rules";
+import type { Modalidad } from "@/types";
 import { QueryInput } from "./query-input";
 import { QueryResponseCard } from "./query-response";
 import { QueryEvidenceList } from "./query-evidence";
 import { QueryHistory } from "./query-history";
 import { QuerySkeleton, QueryError } from "./query-states";
 
+const DEFAULT_MODALIDAD: Modalidad = "CUATRIMESTRAL";
+
 export function QueryDashboard() {
-  const { response, isLoading, error, history, ask, clear } = useQuery();
+  const [modalidad, setModalidad] = useState<Modalidad>(DEFAULT_MODALIDAD);
+  const { response, isLoading, error, history, ask, clear } =
+    useQuery(modalidad);
 
   return (
     <div className="space-y-6">
       {/* Input */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Asistente inteligente
-          </CardTitle>
-          <CardDescription>
-            Usa el modelo Gemini para consultar y analizar la información
-            recopilada de las evaluaciones.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Asistente inteligente
+              </CardTitle>
+              <CardDescription>
+                Usa el modelo Gemini para consultar y analizar la información
+                recopilada de las evaluaciones.
+              </CardDescription>
+            </div>
+            <Select
+              value={modalidad}
+              onValueChange={(v) => setModalidad(v as Modalidad)}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODALIDADES.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <QueryInput onSubmit={ask} isLoading={isLoading} />

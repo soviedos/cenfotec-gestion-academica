@@ -71,7 +71,10 @@ describe("QueryDashboard", () => {
     });
 
     expect(mockedPostQuery).toHaveBeenCalledWith(
-      { question: "¿Cuál es el promedio?" },
+      {
+        question: "¿Cuál es el promedio?",
+        filters: { modalidad: "CUATRIMESTRAL" },
+      },
       expect.any(AbortSignal),
     );
   });

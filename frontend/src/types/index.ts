@@ -212,6 +212,7 @@ export interface FiltrosCualitativos {
 // =============================================
 
 export interface QueryFilters {
+  modalidad: Modalidad;
   periodo?: string;
   docente?: string;
   asignatura?: string;
@@ -220,7 +221,7 @@ export interface QueryFilters {
 
 export interface QueryRequest {
   question: string;
-  filters?: QueryFilters;
+  filters: QueryFilters;
 }
 
 export interface CommentSource {

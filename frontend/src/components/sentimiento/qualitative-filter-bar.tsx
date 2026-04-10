@@ -17,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TEMA_LABELS, SENTIMENT_CONFIG } from "@/components/sentimiento/badges";
+import {
+  TEMAS,
+  temaLabel,
+  SENTIMIENTOS,
+  sentimientoLabel,
+  tipoComentarioLabel,
+} from "@/lib/business-rules";
+import type { Sentimiento, Tema, TipoComentario } from "@/types";
 
 interface QualitativeFilterBarProps {
   periodo: string | undefined;
@@ -41,20 +48,19 @@ interface QualitativeFilterBarProps {
   onClear: () => void;
 }
 
-const TIPOS = [
-  { value: "fortaleza", label: "Fortaleza" },
-  { value: "mejora", label: "Mejora" },
-  { value: "observacion", label: "Observación" },
-];
-
-const SENTIMIENTOS = Object.entries(SENTIMENT_CONFIG).map(([k, v]) => ({
-  value: k,
-  label: v.label,
+const TIPOS = (["fortaleza", "mejora", "observacion"] as const).map((t) => ({
+  value: t,
+  label: tipoComentarioLabel(t),
 }));
 
-const TEMAS = Object.entries(TEMA_LABELS).map(([k, v]) => ({
-  value: k,
-  label: v,
+const SENTIMIENTO_OPTIONS = SENTIMIENTOS.map((s) => ({
+  value: s,
+  label: sentimientoLabel(s),
+}));
+
+const TEMA_OPTIONS = TEMAS.map((t) => ({
+  value: t,
+  label: temaLabel(t),
 }));
 
 const ALL_ESCUELAS = "Todas las escuelas";
@@ -247,7 +253,7 @@ export function QualitativeFilterBar({
           <span className="ml-6 text-sm text-muted-foreground">
             Sentimiento:
           </span>
-          {SENTIMIENTOS.map((s) => (
+          {SENTIMIENTO_OPTIONS.map((s) => (
             <Button
               key={s.value}
               variant={sentimiento === s.value ? "default" : "outline"}
@@ -266,7 +272,7 @@ export function QualitativeFilterBar({
         {/* Tema */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="ml-6 text-sm text-muted-foreground">Tema:</span>
-          {TEMAS.map((t) => (
+          {TEMA_OPTIONS.map((t) => (
             <Button
               key={t.value}
               variant={tema === t.value ? "default" : "outline"}

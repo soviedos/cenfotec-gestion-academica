@@ -17,20 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { SentimientoDistribucion } from "@/types";
-
-const COLORS: Record<string, string> = {
-  positivo: "#10b981",
-  neutro: "#94a3b8",
-  mixto: "#f59e0b",
-  negativo: "#ef4444",
-};
-
-const LABELS: Record<string, string> = {
-  positivo: "Positivo",
-  neutro: "Neutro",
-  mixto: "Mixto",
-  negativo: "Negativo",
-};
+import { sentimientoColor, sentimientoLabel } from "@/lib/business-rules";
 
 interface SentimentChartProps {
   data: SentimientoDistribucion[];
@@ -58,10 +45,10 @@ export function SentimentChart({ data }: SentimentChartProps) {
   }
 
   const chartData = data.map((d) => ({
-    name: LABELS[d.sentimiento] ?? d.sentimiento,
+    name: sentimientoLabel(d.sentimiento as "positivo"),
     value: d.count,
     porcentaje: d.porcentaje,
-    fill: COLORS[d.sentimiento] ?? "#6b7280",
+    fill: sentimientoColor(d.sentimiento as "positivo"),
   }));
 
   return (
