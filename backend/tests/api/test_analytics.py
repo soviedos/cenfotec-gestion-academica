@@ -14,12 +14,18 @@ async def _seed(db: AsyncSession) -> None:
     await db.flush()
 
     eval1 = make_evaluacion(
-        documento_id=doc1.id, docente_nombre="Prof. García",
-        periodo="2025-1", puntaje_general=82.0, estado="completado",
+        documento_id=doc1.id,
+        docente_nombre="Prof. García",
+        periodo="2025-1",
+        puntaje_general=82.0,
+        estado="completado",
     )
     eval2 = make_evaluacion(
-        documento_id=doc2.id, docente_nombre="Prof. López",
-        periodo="2025-1", puntaje_general=91.0, estado="completado",
+        documento_id=doc2.id,
+        docente_nombre="Prof. López",
+        periodo="2025-1",
+        puntaje_general=91.0,
+        estado="completado",
     )
     db.add_all([eval1, eval2])
     await db.flush()
@@ -31,9 +37,10 @@ async def _seed(db: AsyncSession) -> None:
 
 # ── GET /api/v1/analytics/resumen ───────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_resumen_empty(client):
-    resp = await client.get("/api/v1/analytics/resumen")
+    resp = await client.get("/api/v1/analytics/resumen", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_evaluaciones"] == 0
@@ -43,7 +50,7 @@ async def test_resumen_empty(client):
 @pytest.mark.asyncio
 async def test_resumen_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/resumen")
+    resp = await client.get("/api/v1/analytics/resumen", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_evaluaciones"] == 2
@@ -53,17 +60,20 @@ async def test_resumen_with_data(client, db):
 @pytest.mark.asyncio
 async def test_resumen_filter_periodo(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/resumen", params={"periodo": "2099-1"})
+    resp = await client.get(
+        "/api/v1/analytics/resumen", params={"periodo": "2099-1", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json()["total_evaluaciones"] == 0
 
 
 # ── GET /api/v1/analytics/docentes ──────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_docentes_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/docentes")
+    resp = await client.get("/api/v1/analytics/docentes", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 2
@@ -73,17 +83,20 @@ async def test_docentes_with_data(client, db):
 @pytest.mark.asyncio
 async def test_docentes_respects_limit(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/docentes", params={"limit": 1})
+    resp = await client.get(
+        "/api/v1/analytics/docentes", params={"limit": 1, "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert len(resp.json()) == 1
 
 
 # ── GET /api/v1/analytics/dimensiones ──────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_dimensiones_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/dimensiones")
+    resp = await client.get("/api/v1/analytics/dimensiones", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -94,7 +107,8 @@ async def test_dimensiones_with_data(client, db):
 async def test_dimensiones_filter_docente(client, db):
     await _seed(db)
     resp = await client.get(
-        "/api/v1/analytics/dimensiones", params={"docente": "Prof. García"}
+        "/api/v1/analytics/dimensiones",
+        params={"docente": "Prof. García", "modalidad": "CUATRIMESTRAL"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -104,10 +118,11 @@ async def test_dimensiones_filter_docente(client, db):
 
 # ── GET /api/v1/analytics/evolucion ────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_evolucion_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/evolucion")
+    resp = await client.get("/api/v1/analytics/evolucion", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -116,10 +131,11 @@ async def test_evolucion_with_data(client, db):
 
 # ── GET /api/v1/analytics/ranking ──────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_ranking_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/ranking")
+    resp = await client.get("/api/v1/analytics/ranking", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 2
@@ -130,6 +146,8 @@ async def test_ranking_with_data(client, db):
 @pytest.mark.asyncio
 async def test_ranking_respects_limit(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/analytics/ranking", params={"limit": 1})
+    resp = await client.get(
+        "/api/v1/analytics/ranking", params={"limit": 1, "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert len(resp.json()) == 1

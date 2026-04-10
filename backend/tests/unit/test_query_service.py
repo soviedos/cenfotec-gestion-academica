@@ -30,18 +30,27 @@ class TestDetectTema:
 
 
 class TestQuerySchemas:
-    def test_query_request_validation(self):
-        req = QueryRequest(question="¿Cómo enseña García?")
-        assert req.question == "¿Cómo enseña García?"
-        assert req.filters is None
+    def test_query_request_requires_filters(self):
+        with pytest.raises(Exception):
+            QueryRequest(question="¿Cómo enseña García?")
+
+    def test_query_request_requires_modalidad_in_filters(self):
+        with pytest.raises(Exception):
+            QueryRequest(
+                question="¿Cómo enseña García?",
+                filters=QueryFilters(periodo="2025-1"),
+            )
 
     def test_query_request_with_filters(self):
         req = QueryRequest(
             question="¿Qué opinan los estudiantes?",
-            filters=QueryFilters(periodo="2025-1", docente="Prof. García"),
+            filters=QueryFilters(
+                modalidad="CUATRIMESTRAL", periodo="2025-1", docente="Prof. García"
+            ),
         )
         assert req.filters.periodo == "2025-1"
         assert req.filters.docente == "Prof. García"
+        assert req.filters.modalidad == "CUATRIMESTRAL"
 
     def test_query_request_min_length(self):
         with pytest.raises(Exception):

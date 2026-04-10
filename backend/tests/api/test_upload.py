@@ -41,7 +41,7 @@ class TestUploadDocumento:
 
         response = await client.post("/api/v1/documentos/upload", files=files)
 
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "PDF" in response.json()["detail"]
 
     async def test_upload_invalid_content_type(self, client):
@@ -49,7 +49,7 @@ class TestUploadDocumento:
 
         response = await client.post("/api/v1/documentos/upload", files=files)
 
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "Tipo de contenido" in response.json()["detail"]
 
     async def test_upload_invalid_magic_bytes(self, client):
@@ -57,7 +57,7 @@ class TestUploadDocumento:
 
         response = await client.post("/api/v1/documentos/upload", files=files)
 
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "PDF valido" in response.json()["detail"]
 
     async def test_upload_empty_file(self, client):
@@ -65,7 +65,7 @@ class TestUploadDocumento:
 
         response = await client.post("/api/v1/documentos/upload", files=files)
 
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "vacio" in response.json()["detail"]
 
     async def test_upload_shows_in_list(self, client):

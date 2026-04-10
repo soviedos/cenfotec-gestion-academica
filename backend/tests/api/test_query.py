@@ -61,7 +61,10 @@ async def test_query_success(client, db):
     await _seed_query_data(db)
     resp = await client.post(
         "/api/v1/query",
-        json={"question": "¿Cuáles son las fortalezas de Prof. García?"},
+        json={
+            "question": "¿Cuáles son las fortalezas de Prof. García?",
+            "filters": {"modalidad": "CUATRIMESTRAL"},
+        },
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -81,7 +84,11 @@ async def test_query_with_filters(client, db):
         "/api/v1/query",
         json={
             "question": "¿Qué opinan los estudiantes?",
-            "filters": {"periodo": "2025-1", "docente": "Prof. García"},
+            "filters": {
+                "modalidad": "CUATRIMESTRAL",
+                "periodo": "2025-1",
+                "docente": "Prof. García",
+            },
         },
     )
     assert resp.status_code == 200
@@ -93,7 +100,10 @@ async def test_query_with_filters(client, db):
 async def test_query_empty_db(client):
     resp = await client.post(
         "/api/v1/query",
-        json={"question": "¿Cómo enseña el profesor?"},
+        json={
+            "question": "¿Cómo enseña el profesor?",
+            "filters": {"modalidad": "CUATRIMESTRAL"},
+        },
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -121,7 +131,10 @@ async def test_query_tema_filter_applied(client, db):
     await _seed_query_data(db)
     resp = await client.post(
         "/api/v1/query",
-        json={"question": "¿Cómo es la metodología del profesor?"},
+        json={
+            "question": "¿Cómo es la metodología del profesor?",
+            "filters": {"modalidad": "CUATRIMESTRAL"},
+        },
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -134,7 +147,10 @@ async def test_query_response_has_metadata_fields(client, db):
     await _seed_query_data(db)
     resp = await client.post(
         "/api/v1/query",
-        json={"question": "¿Cuál es el puntaje promedio?"},
+        json={
+            "question": "¿Cuál es el puntaje promedio?",
+            "filters": {"modalidad": "CUATRIMESTRAL"},
+        },
     )
     data = resp.json()
     meta = data["metadata"]

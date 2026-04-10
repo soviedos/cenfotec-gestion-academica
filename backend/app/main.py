@@ -21,6 +21,7 @@ from app.domain.exceptions import (
     GeminiTimeoutError,
     GeminiUnavailableError,
     NotFoundError,
+    ValidationError,
 )
 
 logger = get_logger(__name__)
@@ -105,6 +106,10 @@ def create_app() -> FastAPI:
     @application.exception_handler(DuplicateError)
     async def duplicate_handler(_request: Request, exc: DuplicateError):
         return JSONResponse(status_code=409, content={"detail": exc.detail})
+
+    @application.exception_handler(ValidationError)
+    async def validation_handler(_request: Request, exc: ValidationError):
+        return JSONResponse(status_code=422, content={"detail": exc.detail})
 
     @application.exception_handler(GeminiUnavailableError)
     async def gemini_unavailable_handler(_request: Request, exc: GeminiUnavailableError):

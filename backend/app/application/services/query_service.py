@@ -56,10 +56,10 @@ class QueryService:
     async def ask(
         self,
         question: str,
-        filters: QueryFilters | None = None,
+        filters: QueryFilters,
     ) -> QueryResponse:
         """Execute a full RAG query and return the answer with evidence."""
-        f = filters or QueryFilters()
+        f = filters
 
         # ── Step 1: Retrieve structured metrics ─────────────────────
         metrics = await self._retrieve_metrics(f)
@@ -183,6 +183,7 @@ class QueryService:
             func.avg(Evaluacion.puntaje_general.cast(Float)).label("promedio"),
             func.count(Evaluacion.id).label("total"),
         ).where(Evaluacion.estado == "completado")
+        avg_stmt = avg_stmt.where(Evaluacion.modalidad == f.modalidad)
         if f.periodo:
             avg_stmt = avg_stmt.where(Evaluacion.periodo == f.periodo)
         if f.docente:
@@ -217,6 +218,7 @@ class QueryService:
                 .order_by(func.avg(EvaluacionDimension.pct_promedio.cast(Float)).desc())
                 .limit(_MAX_METRICS)
             )
+            dim_stmt = dim_stmt.where(Evaluacion.modalidad == f.modalidad)
             if f.periodo:
                 dim_stmt = dim_stmt.where(Evaluacion.periodo == f.periodo)
             if f.docente:
@@ -264,6 +266,7 @@ class QueryService:
             .where(Evaluacion.estado == "completado")
         )
 
+        base = base.where(Evaluacion.modalidad == f.modalidad)
         if f.periodo:
             base = base.where(Evaluacion.periodo == f.periodo)
         if f.docente:

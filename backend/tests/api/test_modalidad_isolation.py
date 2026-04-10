@@ -1,8 +1,9 @@
 """BR-MOD-02 compliance tests — modalidad isolation across all endpoints.
 
-Every analytics, qualitative, and evaluaciones endpoint must support
-filtering by ``modalidad`` so that data from different modalities
-(CUATRIMESTRAL, MENSUAL, etc.) is never mixed.
+Every analytics, qualitative, and evaluaciones endpoint must **require**
+``modalidad`` so that data from different modalities (CUATRIMESTRAL,
+MENSUAL, etc.) is never mixed.  See also ``test_modalidad_enforcement.py``
+for 422-rejection tests.
 """
 
 import pytest
@@ -82,14 +83,6 @@ async def test_analytics_resumen_filters_by_modalidad(client, db):
     assert data["promedio_global"] == 80.0
 
 
-@pytest.mark.asyncio
-async def test_analytics_resumen_no_modalidad_returns_all(client, db):
-    await _seed_two_modalidades(db)
-    resp = await client.get("/api/v1/analytics/resumen")
-    assert resp.status_code == 200
-    assert resp.json()["total_evaluaciones"] == 2
-
-
 # ── Analytics: docentes ─────────────────────────────────────────────────
 
 
@@ -152,14 +145,6 @@ async def test_qualitative_resumen_filters_by_modalidad(client, db):
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_comentarios"] == 1
-
-
-@pytest.mark.asyncio
-async def test_qualitative_resumen_no_modalidad_returns_all(client, db):
-    await _seed_two_modalidades(db)
-    resp = await client.get("/api/v1/qualitative/resumen")
-    assert resp.status_code == 200
-    assert resp.json()["total_comentarios"] == 2
 
 
 # ── Qualitative: comentarios ───────────────────────────────────────────

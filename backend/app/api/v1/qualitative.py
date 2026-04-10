@@ -1,13 +1,15 @@
 """Qualitative analysis endpoints — comment classification and sentiment.
 
-All qualitative endpoints accept an optional ``modalidad`` parameter to enforce
-the fundamental isolation rule [BR-MOD-02].
+Analytical qualitative endpoints **require** a ``modalidad`` parameter to
+enforce the fundamental isolation rule [BR-MOD-02].  The ``/filtros`` endpoint
+keeps it optional (dropdown population).
 """
 
 from fastapi import APIRouter, Query
 
 from app.api.deps import DbSession
 from app.application.services.qualitative_service import QualitativeService
+from app.domain.invariants import require_modalidad
 from app.domain.schemas.qualitative import (
     ComentarioAnalisisRead,
     FiltrosCualitativos,
@@ -34,18 +36,17 @@ async def resumen_cualitativo(
     docente: str | None = Query(None, max_length=300, description="Filtrar por docente"),
     asignatura: str | None = Query(None, max_length=300, description="Filtrar por asignatura"),
     escuela: str | None = Query(None, max_length=300, description="Filtrar por escuela"),
-    modalidad: str | None = Query(
-        None, max_length=50, description="Filtrar por modalidad [BR-MOD-02]"
-    ),
+    modalidad: str = Query(..., max_length=50, description="Modalidad (obligatorio) [BR-MOD-02]"),
 ):
     """Resumen de métricas cualitativas."""
+    mod = require_modalidad(modalidad)
     svc = QualitativeService(db)
     return await svc.resumen(
         periodo=periodo,
         docente=docente,
         asignatura=asignatura,
         escuela=escuela,
-        modalidad=modalidad,
+        modalidad=mod,
     )
 
 
@@ -56,9 +57,7 @@ async def listar_comentarios(
     docente: str | None = Query(None, max_length=300),
     asignatura: str | None = Query(None, max_length=300),
     escuela: str | None = Query(None, max_length=300),
-    modalidad: str | None = Query(
-        None, max_length=50, description="Filtrar por modalidad [BR-MOD-02]"
-    ),
+    modalidad: str = Query(..., max_length=50, description="Modalidad (obligatorio) [BR-MOD-02]"),
     tipo: str | None = Query(None, max_length=20, description="fortaleza | mejora | observacion"),
     tema: str | None = Query(None, max_length=50),
     sentimiento: str | None = Query(
@@ -68,13 +67,14 @@ async def listar_comentarios(
     offset: int = Query(0, ge=0),
 ):
     """Lista paginada de comentarios clasificados."""
+    mod = require_modalidad(modalidad)
     svc = QualitativeService(db)
     items, _total = await svc.listar_comentarios(
         periodo=periodo,
         docente=docente,
         asignatura=asignatura,
         escuela=escuela,
-        modalidad=modalidad,
+        modalidad=mod,
         tipo=tipo,
         tema=tema,
         sentimiento=sentimiento,
@@ -91,19 +91,18 @@ async def distribucion_temas(
     docente: str | None = Query(None, max_length=300),
     asignatura: str | None = Query(None, max_length=300),
     escuela: str | None = Query(None, max_length=300),
-    modalidad: str | None = Query(
-        None, max_length=50, description="Filtrar por modalidad [BR-MOD-02]"
-    ),
+    modalidad: str = Query(..., max_length=50, description="Modalidad (obligatorio) [BR-MOD-02]"),
     tipo: str | None = Query(None, max_length=20),
 ):
     """Distribución de comentarios por tema."""
+    mod = require_modalidad(modalidad)
     svc = QualitativeService(db)
     return await svc.distribucion_temas(
         periodo=periodo,
         docente=docente,
         asignatura=asignatura,
         escuela=escuela,
-        modalidad=modalidad,
+        modalidad=mod,
         tipo=tipo,
     )
 
@@ -115,20 +114,19 @@ async def distribucion_sentimiento(
     docente: str | None = Query(None, max_length=300),
     asignatura: str | None = Query(None, max_length=300),
     escuela: str | None = Query(None, max_length=300),
-    modalidad: str | None = Query(
-        None, max_length=50, description="Filtrar por modalidad [BR-MOD-02]"
-    ),
+    modalidad: str = Query(..., max_length=50, description="Modalidad (obligatorio) [BR-MOD-02]"),
     tipo: str | None = Query(None, max_length=20),
     tema: str | None = Query(None, max_length=50),
 ):
     """Distribución de comentarios por sentimiento."""
+    mod = require_modalidad(modalidad)
     svc = QualitativeService(db)
     return await svc.distribucion_sentimiento(
         periodo=periodo,
         docente=docente,
         asignatura=asignatura,
         escuela=escuela,
-        modalidad=modalidad,
+        modalidad=mod,
         tipo=tipo,
         tema=tema,
     )
@@ -141,18 +139,17 @@ async def nube_palabras(
     docente: str | None = Query(None, max_length=300),
     asignatura: str | None = Query(None, max_length=300),
     escuela: str | None = Query(None, max_length=300),
-    modalidad: str | None = Query(
-        None, max_length=50, description="Filtrar por modalidad [BR-MOD-02]"
-    ),
+    modalidad: str = Query(..., max_length=50, description="Modalidad (obligatorio) [BR-MOD-02]"),
     tipo: str | None = Query(None, max_length=20),
 ):
     """Frecuencia de palabras para visualización word-cloud."""
+    mod = require_modalidad(modalidad)
     svc = QualitativeService(db)
     return await svc.nube_palabras(
         periodo=periodo,
         docente=docente,
         asignatura=asignatura,
         escuela=escuela,
-        modalidad=modalidad,
+        modalidad=mod,
         tipo=tipo,
     )

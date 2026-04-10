@@ -1,6 +1,6 @@
 """ComentarioAnalisis entity — one row per classified comment."""
 
-from sqlalchemy import Boolean, ForeignKey, Numeric, String, Text, Uuid
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.entities.base import Base, TimestampMixin, UUIDMixin
@@ -8,6 +8,12 @@ from app.domain.entities.base import Base, TimestampMixin, UUIDMixin
 
 class ComentarioAnalisis(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "comentario_analisis"
+    __table_args__ = (
+        CheckConstraint(
+            "sent_score IS NULL OR (sent_score >= -1 AND sent_score <= 1)",
+            name="ck_comentario_sent_score_range",
+        ),
+    )
 
     evaluacion_id: Mapped[str] = mapped_column(
         Uuid, ForeignKey("evaluaciones.id", ondelete="CASCADE"), nullable=False, index=True

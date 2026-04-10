@@ -129,7 +129,11 @@ class AnalyticsRepository:
         escuela: str | None = None,
         curso: str | None = None,
     ) -> list[dict]:
-        """Return average percentages per evaluation dimension."""
+        """Return average percentages per evaluation dimension.
+
+        Always JOINs to Evaluacion to guarantee ``estado='completado'``
+        and proper modalidad isolation [BR-AN-01].
+        """
         stmt = (
             select(
                 EvaluacionDimension.nombre.label("dimension"),
@@ -138,21 +142,20 @@ class AnalyticsRepository:
                 func.avg(EvaluacionDimension.pct_autoeval.cast(Float)).label("pct_autoeval"),
                 func.avg(EvaluacionDimension.pct_promedio.cast(Float)).label("pct_promedio"),
             )
+            .join(Evaluacion, EvaluacionDimension.evaluacion_id == Evaluacion.id)
+            .where(Evaluacion.estado == "completado")
             .group_by(EvaluacionDimension.nombre)
             .order_by(EvaluacionDimension.nombre)
         )
 
-        needs_join = periodo or docente or modalidad or escuela or curso
-        if needs_join:
-            stmt = stmt.join(Evaluacion, EvaluacionDimension.evaluacion_id == Evaluacion.id)
-            if periodo:
-                stmt = stmt.where(Evaluacion.periodo == periodo)
-            if docente:
-                stmt = stmt.where(Evaluacion.docente_nombre == docente)
-            if modalidad:
-                stmt = stmt.where(Evaluacion.modalidad == modalidad)
-            if escuela or curso:
-                stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
+        if periodo:
+            stmt = stmt.where(Evaluacion.periodo == periodo)
+        if docente:
+            stmt = stmt.where(Evaluacion.docente_nombre == docente)
+        if modalidad:
+            stmt = stmt.where(Evaluacion.modalidad == modalidad)
+        if escuela or curso:
+            stmt = stmt.where(Evaluacion.id.in_(_curso_filter_subquery(escuela, curso)))
 
         rows = (await self.session.execute(stmt)).all()
         return [

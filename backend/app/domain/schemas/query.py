@@ -18,10 +18,11 @@ class QueryRequest(BaseModel):
     """User's natural-language question with optional filters."""
 
     question: str = Field(..., min_length=3, max_length=1000)
-    filters: QueryFilters | None = None
+    filters: QueryFilters = Field(..., description="Filtros (modalidad obligatorio) [BR-MOD-02]")
 
 
 class QueryFilters(BaseModel):
+    modalidad: str = Field(..., description="Modalidad (obligatorio) [BR-MOD-02]")
     periodo: str | None = None
     docente: str | None = None
     asignatura: str | None = None

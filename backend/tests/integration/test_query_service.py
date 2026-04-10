@@ -57,7 +57,7 @@ async def test_query_service_returns_answer_with_evidence(db):
 
     response = await svc.ask(
         question="¿Cómo es la comunicación de Prof. López?",
-        filters=QueryFilters(docente="Prof. López"),
+        filters=QueryFilters(modalidad="CUATRIMESTRAL", docente="Prof. López"),
     )
 
     assert response.answer == "Prof. López destaca en comunicación [1]."
@@ -72,7 +72,9 @@ async def test_query_service_persists_audit_log(db):
     gateway = FakeGeminiGateway()
     svc = QueryService(db, gateway)
 
-    response = await svc.ask(question="¿Cuál es el promedio de López?")
+    response = await svc.ask(
+        question="¿Cuál es el promedio de López?", filters=QueryFilters(modalidad="CUATRIMESTRAL")
+    )
 
     # Audit log should exist
     assert response.metadata.audit_log_id is not None
@@ -92,7 +94,7 @@ async def test_query_service_retrieves_metrics(db):
 
     response = await svc.ask(
         question="¿Cuál es el puntaje de Prof. López?",
-        filters=QueryFilters(docente="Prof. López"),
+        filters=QueryFilters(modalidad="CUATRIMESTRAL", docente="Prof. López"),
     )
 
     # Should have at least one metric evidence
@@ -108,7 +110,10 @@ async def test_query_service_filters_by_tema(db):
     svc = QueryService(db, gateway)
 
     # "comunicación" should trigger tema = "comunicacion"
-    response = await svc.ask(question="¿Cómo es la comunicación del profesor?")
+    response = await svc.ask(
+        question="¿Cómo es la comunicación del profesor?",
+        filters=QueryFilters(modalidad="CUATRIMESTRAL"),
+    )
 
     comment_evidence = [e for e in response.evidence if e.type == "comment"]
     # At least the comunicacion comment should be present
@@ -126,7 +131,9 @@ async def test_query_service_gateway_error_persists_audit(db):
     svc = QueryService(db, gateway)
 
     with pytest.raises(GeminiError, match="Boom"):
-        await svc.ask(question="¿Algo sobre el profesor?")
+        await svc.ask(
+            question="¿Algo sobre el profesor?", filters=QueryFilters(modalidad="CUATRIMESTRAL")
+        )
 
 
 @pytest.mark.asyncio
@@ -135,7 +142,9 @@ async def test_query_service_no_data(db):
     gateway = FakeGeminiGateway()
     svc = QueryService(db, gateway)
 
-    response = await svc.ask(question="¿Cómo son los profesores?")
+    response = await svc.ask(
+        question="¿Cómo son los profesores?", filters=QueryFilters(modalidad="CUATRIMESTRAL")
+    )
     assert response.answer
     assert response.metadata.audit_log_id is not None
 
@@ -148,7 +157,7 @@ async def test_gateway_receives_correct_data(db):
 
     await svc.ask(
         question="¿Qué opinan de López?",
-        filters=QueryFilters(docente="Prof. López"),
+        filters=QueryFilters(modalidad="CUATRIMESTRAL", docente="Prof. López"),
     )
 
     assert len(gateway.calls) == 1

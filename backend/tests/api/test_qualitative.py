@@ -22,32 +22,34 @@ async def _seed(db: AsyncSession) -> None:
     db.add(eval1)
     await db.flush()
 
-    db.add_all([
-        make_comentario(
-            evaluacion_id=eval1.id,
-            tipo="fortaleza",
-            texto="Explica de forma clara",
-            tema="comunicacion",
-            sentimiento="positivo",
-            sent_score=0.80,
-        ),
-        make_comentario(
-            evaluacion_id=eval1.id,
-            tipo="mejora",
-            texto="No es puntual",
-            tema="puntualidad",
-            sentimiento="negativo",
-            sent_score=-0.50,
-        ),
-        make_comentario(
-            evaluacion_id=eval1.id,
-            tipo="observacion",
-            texto="Clase normal sin novedades",
-            tema="otro",
-            sentimiento="neutro",
-            sent_score=0.0,
-        ),
-    ])
+    db.add_all(
+        [
+            make_comentario(
+                evaluacion_id=eval1.id,
+                tipo="fortaleza",
+                texto="Explica de forma clara",
+                tema="comunicacion",
+                sentimiento="positivo",
+                sent_score=0.80,
+            ),
+            make_comentario(
+                evaluacion_id=eval1.id,
+                tipo="mejora",
+                texto="No es puntual",
+                tema="puntualidad",
+                sentimiento="negativo",
+                sent_score=-0.50,
+            ),
+            make_comentario(
+                evaluacion_id=eval1.id,
+                tipo="observacion",
+                texto="Clase normal sin novedades",
+                tema="otro",
+                sentimiento="neutro",
+                sent_score=0.0,
+            ),
+        ]
+    )
     await db.flush()
 
 
@@ -56,7 +58,7 @@ async def _seed(db: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_resumen_empty(client):
-    resp = await client.get("/api/v1/qualitative/resumen")
+    resp = await client.get("/api/v1/qualitative/resumen", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_comentarios"] == 0
@@ -65,7 +67,7 @@ async def test_resumen_empty(client):
 @pytest.mark.asyncio
 async def test_resumen_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/resumen")
+    resp = await client.get("/api/v1/qualitative/resumen", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_comentarios"] == 3
@@ -77,11 +79,11 @@ async def test_resumen_with_data(client, db):
 @pytest.mark.asyncio
 async def test_resumen_filter_periodo(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/resumen?periodo=2025-1")
+    resp = await client.get("/api/v1/qualitative/resumen?periodo=2025-1&modalidad=CUATRIMESTRAL")
     assert resp.status_code == 200
     assert resp.json()["total_comentarios"] == 3
 
-    resp2 = await client.get("/api/v1/qualitative/resumen?periodo=9999-9")
+    resp2 = await client.get("/api/v1/qualitative/resumen?periodo=9999-9&modalidad=CUATRIMESTRAL")
     assert resp2.status_code == 200
     assert resp2.json()["total_comentarios"] == 0
 
@@ -91,7 +93,9 @@ async def test_resumen_filter_periodo(client, db):
 
 @pytest.mark.asyncio
 async def test_comentarios_empty(client):
-    resp = await client.get("/api/v1/qualitative/comentarios")
+    resp = await client.get(
+        "/api/v1/qualitative/comentarios", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -99,7 +103,9 @@ async def test_comentarios_empty(client):
 @pytest.mark.asyncio
 async def test_comentarios_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/comentarios")
+    resp = await client.get(
+        "/api/v1/qualitative/comentarios", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 3
@@ -114,7 +120,9 @@ async def test_comentarios_with_data(client, db):
 @pytest.mark.asyncio
 async def test_comentarios_filter_tipo(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/comentarios?tipo=fortaleza")
+    resp = await client.get(
+        "/api/v1/qualitative/comentarios?tipo=fortaleza&modalidad=CUATRIMESTRAL"
+    )
     assert resp.status_code == 200
     assert len(resp.json()) == 1
 
@@ -122,7 +130,9 @@ async def test_comentarios_filter_tipo(client, db):
 @pytest.mark.asyncio
 async def test_comentarios_pagination(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/comentarios?limit=2&offset=0")
+    resp = await client.get(
+        "/api/v1/qualitative/comentarios?limit=2&offset=0&modalidad=CUATRIMESTRAL"
+    )
     assert resp.status_code == 200
     assert len(resp.json()) == 2
 
@@ -132,7 +142,9 @@ async def test_comentarios_pagination(client, db):
 
 @pytest.mark.asyncio
 async def test_temas_empty(client):
-    resp = await client.get("/api/v1/qualitative/distribucion/temas")
+    resp = await client.get(
+        "/api/v1/qualitative/distribucion/temas", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -140,7 +152,9 @@ async def test_temas_empty(client):
 @pytest.mark.asyncio
 async def test_temas_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/distribucion/temas")
+    resp = await client.get(
+        "/api/v1/qualitative/distribucion/temas", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 3
@@ -153,7 +167,9 @@ async def test_temas_with_data(client, db):
 
 @pytest.mark.asyncio
 async def test_sentimiento_empty(client):
-    resp = await client.get("/api/v1/qualitative/distribucion/sentimiento")
+    resp = await client.get(
+        "/api/v1/qualitative/distribucion/sentimiento", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -161,7 +177,9 @@ async def test_sentimiento_empty(client):
 @pytest.mark.asyncio
 async def test_sentimiento_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/distribucion/sentimiento")
+    resp = await client.get(
+        "/api/v1/qualitative/distribucion/sentimiento", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     sentimientos = {d["sentimiento"] for d in data}
@@ -174,7 +192,9 @@ async def test_sentimiento_with_data(client, db):
 
 @pytest.mark.asyncio
 async def test_nube_empty(client):
-    resp = await client.get("/api/v1/qualitative/nube-palabras")
+    resp = await client.get(
+        "/api/v1/qualitative/nube-palabras", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["tipo"] == "all"
@@ -184,7 +204,9 @@ async def test_nube_empty(client):
 @pytest.mark.asyncio
 async def test_nube_with_data(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/nube-palabras")
+    resp = await client.get(
+        "/api/v1/qualitative/nube-palabras", params={"modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["palabras"]) > 0
@@ -193,6 +215,8 @@ async def test_nube_with_data(client, db):
 @pytest.mark.asyncio
 async def test_nube_filter_tipo(client, db):
     await _seed(db)
-    resp = await client.get("/api/v1/qualitative/nube-palabras?tipo=fortaleza")
+    resp = await client.get(
+        "/api/v1/qualitative/nube-palabras?tipo=fortaleza&modalidad=CUATRIMESTRAL"
+    )
     assert resp.status_code == 200
     assert resp.json()["tipo"] == "fortaleza"

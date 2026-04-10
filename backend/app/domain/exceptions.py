@@ -34,6 +34,33 @@ class ValidationError(DomainError):
         super().__init__(detail)
 
 
+class ModalidadRequeridaError(ValidationError):
+    """Analytics / alert endpoints require a modalidad filter [BR-MOD-02].
+
+    Raised when a caller omits the mandatory ``modalidad`` parameter on
+    operations that *must* be scoped to a single modality.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("El parámetro 'modalidad' es obligatorio para esta consulta [BR-MOD-02]")
+
+
+class ModalidadInvalidaError(ValidationError):
+    """The supplied modalidad value is not a valid modality [BR-MOD-01].
+
+    Valid analysis modalities: CUATRIMESTRAL, MENSUAL, B2B.
+    DESCONOCIDA is stored but excluded from analytics per [BR-MOD-05].
+    """
+
+    _VALID = ("CUATRIMESTRAL", "MENSUAL", "B2B")
+
+    def __init__(self, valor: str) -> None:
+        super().__init__(
+            f"Modalidad inválida: '{valor}'. "
+            f"Valores permitidos: {', '.join(self._VALID)} [BR-MOD-01]"
+        )
+
+
 class GeminiError(DomainError):
     """Base error for Gemini API interactions."""
 

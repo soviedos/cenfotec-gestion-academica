@@ -66,7 +66,7 @@ async def _seed_alerts(db: AsyncSession, *, count: int = 3):
 
 @pytest.mark.asyncio
 async def test_list_alerts_empty(client):
-    resp = await client.get("/api/v1/alertas")
+    resp = await client.get("/api/v1/alertas", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 0
@@ -79,7 +79,7 @@ async def test_list_alerts_empty(client):
 @pytest.mark.asyncio
 async def test_list_alerts_with_data(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas")
+    resp = await client.get("/api/v1/alertas", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 3
@@ -89,7 +89,9 @@ async def test_list_alerts_with_data(client, db):
 @pytest.mark.asyncio
 async def test_list_alerts_pagination(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas", params={"page": 1, "page_size": 2})
+    resp = await client.get(
+        "/api/v1/alertas", params={"page": 1, "page_size": 2, "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 3
@@ -98,7 +100,9 @@ async def test_list_alerts_pagination(client, db):
     assert data["total_pages"] == 2
 
     # Second page
-    resp2 = await client.get("/api/v1/alertas", params={"page": 2, "page_size": 2})
+    resp2 = await client.get(
+        "/api/v1/alertas", params={"page": 2, "page_size": 2, "modalidad": "CUATRIMESTRAL"}
+    )
     data2 = resp2.json()
     assert len(data2["items"]) == 1
 
@@ -117,7 +121,9 @@ async def test_list_alerts_filter_modalidad(client, db):
 @pytest.mark.asyncio
 async def test_list_alerts_filter_severidad(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas", params={"severidad": "alta"})
+    resp = await client.get(
+        "/api/v1/alertas", params={"severidad": "alta", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json()["total"] == 1
 
@@ -125,18 +131,24 @@ async def test_list_alerts_filter_severidad(client, db):
 @pytest.mark.asyncio
 async def test_list_alerts_filter_docente(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas", params={"docente": "García"})
+    resp = await client.get(
+        "/api/v1/alertas", params={"docente": "García", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json()["total"] == 3
 
-    resp2 = await client.get("/api/v1/alertas", params={"docente": "NoExiste"})
+    resp2 = await client.get(
+        "/api/v1/alertas", params={"docente": "NoExiste", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp2.json()["total"] == 0
 
 
 @pytest.mark.asyncio
 async def test_list_alerts_filter_tipo(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas", params={"tipo_alerta": "BAJO_DESEMPEÑO"})
+    resp = await client.get(
+        "/api/v1/alertas", params={"tipo_alerta": "BAJO_DESEMPEÑO", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json()["total"] == 1
 
@@ -144,18 +156,22 @@ async def test_list_alerts_filter_tipo(client, db):
 @pytest.mark.asyncio
 async def test_list_alerts_filter_estado(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas", params={"estado": "activa"})
+    resp = await client.get(
+        "/api/v1/alertas", params={"estado": "activa", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp.status_code == 200
     assert resp.json()["total"] == 3
 
-    resp2 = await client.get("/api/v1/alertas", params={"estado": "resuelta"})
+    resp2 = await client.get(
+        "/api/v1/alertas", params={"estado": "resuelta", "modalidad": "CUATRIMESTRAL"}
+    )
     assert resp2.json()["total"] == 0
 
 
 @pytest.mark.asyncio
 async def test_list_alerts_response_fields(client, db):
     await _seed_alerts(db, count=1)
-    resp = await client.get("/api/v1/alertas")
+    resp = await client.get("/api/v1/alertas", params={"modalidad": "CUATRIMESTRAL"})
     item = resp.json()["items"][0]
     required_fields = {
         "id",
@@ -183,7 +199,7 @@ async def test_list_alerts_response_fields(client, db):
 
 @pytest.mark.asyncio
 async def test_summary_empty(client):
-    resp = await client.get("/api/v1/alertas/summary")
+    resp = await client.get("/api/v1/alertas/summary", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_activas"] == 0
@@ -193,7 +209,7 @@ async def test_summary_empty(client):
 @pytest.mark.asyncio
 async def test_summary_with_data(client, db):
     await _seed_alerts(db, count=3)
-    resp = await client.get("/api/v1/alertas/summary")
+    resp = await client.get("/api/v1/alertas/summary", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_activas"] == 3
@@ -235,7 +251,7 @@ async def test_rebuild_then_list(client, db):
     await _seed_evaluacion(db)
     await client.post("/api/v1/alertas/rebuild")
 
-    resp = await client.get("/api/v1/alertas")
+    resp = await client.get("/api/v1/alertas", params={"modalidad": "CUATRIMESTRAL"})
     assert resp.status_code == 200
     assert resp.json()["total"] >= 1
 
