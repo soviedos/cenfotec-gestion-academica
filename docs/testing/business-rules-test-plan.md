@@ -2,21 +2,24 @@
 
 > **Fuente:** `docs/business-rules/evaluation-rules.md` v1.0.0
 > **Fecha:** 2026-04-05
-> **Cobertura actual:** 190 tests (backend 66+42+10+26=144, frontend 21+25=46)
-> **Objetivo:** +60 tests nuevos focalizados en gaps críticos
+> **Cobertura actual:** 331 tests (backend 125+43+34+29+71+9=311, frontend 18+2=20)
+> **Nota:** Los tests planificados en la sección 2 ya fueron implementados (`test_business_rules.py`, `business-rules-br.test.ts`)
 
 ---
 
 ## 1. Resumen de auditoría
 
-| Archivo                  | Tests | Calidad    | Gaps críticos                                            |
-| ------------------------ | ----- | ---------- | -------------------------------------------------------- |
-| `test_periodo.py`        | 66    | Fuerte     | B2B en listas mixtas                                     |
-| `test_alert_rules.py`    | 42    | Muy fuerte | Boundaries exactos en 10.0/15.0 y 10%/20%                |
-| `test_alert_engine.py`   | 10    | Moderado   | Dedup, aislamiento, solo-últimos-2, multi-detector       |
-| `test_classifier.py`     | 26    | Moderado   | Boundary ±0.25, multi-tema, prior+mixto                  |
-| `periodo-sort.test.ts`   | 21    | Fuerte     | B2B en listas mixtas                                     |
-| `business-rules.test.ts` | 25    | Bueno      | `isValidPeriodo` out-of-range, `modalidadFromPeriodo` LC |
+| Archivo                           | Tests | Calidad    | Gaps críticos                                      |
+| --------------------------------- | ----- | ---------- | -------------------------------------------------- |
+| `test_periodo.py`                 | 125   | Fuerte     | —                                                  |
+| `test_alert_rules.py`             | 43    | Muy fuerte | —                                                  |
+| `test_alert_engine.py`            | 11    | Fuerte     | —                                                  |
+| `test_alert_engine_edge_cases.py` | 23    | Fuerte     | Dedup, aislamiento, solo-últimos-2, multi-detector |
+| `test_classifier.py`              | 29    | Fuerte     | —                                                  |
+| `test_business_rules.py`          | 71    | Fuerte     | Reglas BR-\* end-to-end                            |
+| `test_invariants.py`              | 9     | Fuerte     | Invariantes de dominio                             |
+| `business-rules.test.ts`          | 18    | Bueno      | `isValidPeriodo`, `modalidadFromPeriodo`           |
+| `business-rules-br.test.ts`       | 2     | Moderado   | BR-\* frontend                                     |
 
 ---
 
@@ -31,11 +34,10 @@
 
 ### Archivos a crear/extender
 
-| Archivo                                         | Acción   | Tests nuevos |
-| ----------------------------------------------- | -------- | ------------ |
-| `backend/tests/unit/test_business_rules.py`     | Crear    | ~35          |
-| `frontend/tests/unit/business-rules-br.test.ts` | Crear    | ~25          |
-| Existentes                                      | No tocar | 0            |
+| Archivo                                         | Estado    | Tests |
+| ----------------------------------------------- | --------- | ----- |
+| `backend/tests/unit/test_business_rules.py`     | ✅ Creado | 71    |
+| `frontend/tests/unit/business-rules-br.test.ts` | ✅ Creado | 2     |
 
 ---
 

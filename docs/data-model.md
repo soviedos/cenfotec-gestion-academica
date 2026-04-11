@@ -216,6 +216,8 @@ Puntajes por dimensión pedagógica (ej: METODOLOGÍA, Dominio, CUMPLIMIENTO).
 
 **Índices:** `ix_eval_dim_evaluacion`, `ix_eval_dim_nombre`
 
+**Restricción UNIQUE:** `(evaluacion_id, nombre)` — impide duplicar dimensiones dentro de una evaluación.
+
 ---
 
 ### `evaluacion_cursos`
@@ -240,6 +242,8 @@ Una fila por curso-grupo evaluado dentro de cada evaluación.
 | `updated_at`     | `TIMESTAMPTZ`  | NOT NULL                                 | Última modificación                    |
 
 **Índices:** `ix_eval_curso_evaluacion`
+
+**Restricción UNIQUE:** `(evaluacion_id, codigo, grupo)` — impide duplicar cursos por código+grupo dentro de una evaluación.
 
 ---
 
@@ -318,6 +322,8 @@ Alertas generadas automáticamente por el motor de reglas de negocio [AL-10 a AL
 
 **Índices:** `ix_alertas_modalidad`, `ix_alertas_severidad`, `ix_alertas_estado`, `ix_alertas_modalidad_estado` (compuesto), `ix_alertas_docente`
 
+**Restricción UNIQUE:** `(docente_nombre, curso, periodo, tipo_alerta, modalidad)` — deduplicación de alertas [AL-40]. Incluye `modalidad` para permitir alertas independientes por modalidad.
+
 **Restricción UNIQUE:** `(docente_nombre, curso, periodo, tipo_alerta)` — deduplicación [AL-40]
 
 **Tipos de alerta:**
@@ -390,17 +396,19 @@ Todas las FK hijas usan `ON DELETE CASCADE` excepto `gemini_audit_log.evaluacion
 
 ## Historial de Migraciones
 
-| Revisión | Fecha      | Descripción                                                 |
-| -------- | ---------- | ----------------------------------------------------------- |
-| `0001`   | 2026-04-03 | Schema inicial: `documentos` y `evaluaciones`               |
-| `0002`   | 2026-04-03 | Agrega `datos_completos` (TEXT) a `evaluaciones`            |
-| `0003`   | 2026-04-03 | Agrega `evaluacion_dimensiones` y `evaluacion_cursos`       |
-| `0004`   | 2026-04-03 | Agrega `comentario_analisis` con clasificación              |
-| `0005`   | 2026-04-04 | Agrega `gemini_audit_log` para auditoría de IA              |
-| `0006`   | 2026-04-04 | Agrega índices de rendimiento para analytics y qualitative  |
-| `0007`   | 2026-04-04 | Agrega `modalidad`, `año`, `periodo_orden` a `evaluaciones` |
-| `0008`   | 2026-04-04 | Crea tabla `alertas` (sistema de alertas [AL-10] a [AL-50]) |
-| `0009`   | 2026-04-04 | Crea `document_processing_jobs` + restricciones UNIQUE      |
+| Revisión | Fecha      | Descripción                                                      |
+| -------- | ---------- | ---------------------------------------------------------------- |
+| `0001`   | 2026-04-03 | Schema inicial: `documentos` y `evaluaciones`                    |
+| `0002`   | 2026-04-03 | Agrega `datos_completos` (TEXT) a `evaluaciones`                 |
+| `0003`   | 2026-04-03 | Agrega `evaluacion_dimensiones` y `evaluacion_cursos`            |
+| `0004`   | 2026-04-03 | Agrega `comentario_analisis` con clasificación                   |
+| `0005`   | 2026-04-04 | Agrega `gemini_audit_log` para auditoría de IA                   |
+| `0006`   | 2026-04-04 | Agrega índices de rendimiento para analytics y qualitative       |
+| `0007`   | 2026-04-04 | Agrega `modalidad`, `año`, `periodo_orden` a `evaluaciones`      |
+| `0008`   | 2026-04-04 | Crea tabla `alertas` (sistema de alertas [AL-10] a [AL-50])      |
+| `0009`   | 2026-04-04 | Crea `document_processing_jobs` + restricciones UNIQUE           |
+| `0010`   | 2026-04-08 | Agrega CHECK constraint en `sent_score` de `comentario_analisis` |
+| `0011`   | 2026-04-08 | Agrega `modalidad` a restricción UNIQUE de `alertas` (dedup)     |
 
 ### Comandos de migración
 

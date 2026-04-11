@@ -26,7 +26,7 @@ sequenceDiagram
     participant API as FastAPI
     participant S3 as MinIO
     participant DB as PostgreSQL
-    participant Q as Redis/Celery
+    participant Q as BackgroundTasks
 
     U->>FE: Selecciona PDF
     FE->>API: POST /api/v1/documentos (multipart)
@@ -37,14 +37,14 @@ sequenceDiagram
     else Nuevo
         API->>S3: put_object(pdf_bytes)
         API->>DB: INSERT documentos (estado='subido')
-        API->>Q: Encola tarea de procesamiento
+        API->>Q: Encola procesamiento (BackgroundTasks)
         API-->>FE: 202 Accepted {id, estado}
     end
 ```
 
 **Decisiones clave:**
 
-- El PDF se almacena en MinIO **antes** de encolar — si Celery falla, el archivo no se pierde.
+- El PDF se almacena en MinIO **antes** de encolar — si el procesamiento falla, el archivo no se pierde.
 - Hash SHA-256 evita procesamiento duplicado.
 - Respuesta `202 Accepted` inmediata — el procesamiento es asíncrono.
 
@@ -230,12 +230,12 @@ PeriodoData = {
 }
 ```
 
-La detección de modalidad se basa en keywords del período:
+La detección de modalidad se basa en regex sobre el código del período (`periodo.py`):
 
-- `"Cuatrimestre"` → `CUATRIMESTRAL`
-- `"Enero"`, `"Febrero"`, etc. → `MENSUAL`
-- `"B2B"` → `B2B`
-- Otros → `DESCONOCIDA`
+- `^B2B[\s\-].+` → `B2B` (evaluado primero por prioridad)
+- `^C([1-3])\s+(\d{4})$` → `CUATRIMESTRAL` (C1–C3)
+- `^(MT?)(\d{1,2})\s+(\d{4})$` → `MENSUAL` (M1–M10, MT1–MT10)
+- No match → `DESCONOCIDA`
 
 Estos campos habilitan el filtro por modalidad [BR-MOD-02] en toda la plataforma.
 
@@ -259,11 +259,13 @@ Todo ocurre en una transacción — si falla cualquier paso, se hace rollback co
 
 ---
 
-## 6. Pipeline Celery (Asíncrono)
+## 6. Pipeline asíncrono (BackgroundTasks)
+
+El procesamiento se ejecuta dentro del proceso de FastAPI usando `BackgroundTasks`:
 
 ```mermaid
 graph LR
-    A[task_process_pdf] --> B[get_object<br/>MinIO]
+    A[BackgroundTasks] --> B[get_object<br/>MinIO]
     B --> C[parse_evaluacion<br/>PyMuPDF]
     C --> D{success?}
     D -->|Sí| E[classify_comments]
@@ -273,18 +275,7 @@ graph LR
     H --> I[UPDATE doc<br/>estado=completado]
 ```
 
-**Configuración del worker:**
-
-```python
-celery_app.conf.update(
-    task_serializer="json",
-    task_track_started=True,
-    task_acks_late=True,           # No pierde tareas si el worker muere
-    worker_prefetch_multiplier=1,  # Toma una tarea a la vez
-)
-```
-
-**Retry policy:** Backoff exponencial ante fallos transitorios (red, DB lock). Los fallos de parseo (PDF mal formado) no se reintentan.
+El procesamiento es síncrono dentro del background task. Los fallos de parseo (PDF mal formado) marcan `estado = 'error'` sin reintentos.
 
 ---
 

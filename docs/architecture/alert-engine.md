@@ -182,19 +182,20 @@ LIMIT 2
 Para evitar N+1 queries, el repositorio carga todos los datos necesarios en una sola consulta:
 
 ```python
-# alerta_repo.py :: load_snapshots()
-@dataclass(frozen=True)
+# alert_rules.py :: DocenteCursoSnapshot
+@dataclass(frozen=True, slots=True)
 class DocenteCursoSnapshot:
+    evaluacion_id: uuid.UUID
     docente_nombre: str
     curso: str
     periodo: str
     modalidad: str
-    promedio_puntaje: float        # AVG(puntaje_general)
+    puntaje_general: float | None  # AVG(puntaje_general)
     total_comentarios: int
     negativos_count: int
     mejora_negativo_count: int
     actitud_negativo_count: int
-    tema_otro_count: int
+    otro_count: int
 ```
 
 **Estructura del resultado:**
@@ -216,8 +217,26 @@ class DocenteCursoSnapshot:
 La unicidad se define por la combinación:
 
 ```
-(docente_nombre, curso, periodo, tipo_alerta)
+(docente_nombre, curso, periodo, tipo_alerta, modalidad)
 ```
+
+### Deduplicación en dos capas
+
+**Capa 1 — In-memory (dentro de `_detect()`):**
+
+Antes de emitir candidatos, el motor mantiene un `set` de tuplas ya vistas para evitar duplicados dentro de la misma ejecución:
+
+```python
+seen: set[tuple[str, str, str, str, str]] = set()
+dedup_key = (candidate.docente_nombre, candidate.curso,
+             candidate.periodo, candidate.tipo_alerta.value,
+             candidate.modalidad)
+if dedup_key not in seen:
+    seen.add(dedup_key)
+    candidates.append(candidate)
+```
+
+**Capa 2 — Base de datos (`upsert_batch()`):**
 
 El upsert usa `ON CONFLICT … DO UPDATE` de PostgreSQL. Solo se actualizan alertas en `estado = 'activa'`; las que ya fueron revisadas o resueltas se preservan.
 
@@ -226,7 +245,7 @@ El upsert usa `ON CONFLICT … DO UPDATE` de PostgreSQL. Solo se actualizan aler
 ```sql
 INSERT INTO alertas (docente_nombre, curso, periodo, tipo_alerta, ...)
 VALUES ('JOAQUIN GUTIERREZ', 'INF-02', 'C1 2025', 'BAJO_DESEMPEÑO', ...)
-ON CONFLICT (docente_nombre, curso, periodo, tipo_alerta) DO UPDATE
+ON CONFLICT (docente_nombre, curso, periodo, tipo_alerta, modalidad) DO UPDATE
 SET valor_actual = EXCLUDED.valor_actual, ...
 WHERE alertas.estado = 'activa';
 -- Si alertas.estado = 'revisada', no se actualiza ✓

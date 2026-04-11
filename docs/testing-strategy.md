@@ -39,18 +39,19 @@
 
 ### Capas de Tests
 
-#### Unit Tests (`tests/unit/`) — 24 archivos
+#### Unit Tests (`tests/unit/`) — 26 archivos
 
 Tests de funciones puras sin I/O ni base de datos:
 
 - **Parser:** `test_parser.py`, `test_header_extractor.py`, `test_metrics_extractor.py`, `test_courses_extractor.py`, `test_comments_extractor.py`, `test_parser_periodo.py`, `test_parser_schemas.py`, `test_parse_result.py`
 - **Clasificador:** `test_classifier.py` — temas, sentimiento, edge cases
-- **Alertas:** `test_alert_engine.py`, `test_alert_rules.py` — motor de reglas de negocio
+- **Alertas:** `test_alert_engine.py`, `test_alert_engine_edge_cases.py`, `test_alert_rules.py` — motor de reglas de negocio
 - **Query:** `test_query_service.py`, `test_prompt_templates.py` — pipeline RAG
 - **Reglas de negocio:** `test_business_rules.py` — 150+ reglas BR-\*
 - **Schemas:** `test_schemas.py`, `test_qualitative_schemas.py`
 - **Infraestructura:** `test_cache.py`, `test_rate_limiter.py`, `test_gemini_exceptions.py`, `test_gemini_retry.py`
 - **Config:** `test_config_routes.py` — endpoint de umbrales de alerta
+- **Dominio:** `test_invariants.py` — invariantes de dominio
 - **Otros:** `test_exceptions.py`, `test_factories.py`, `test_periodo.py`
 
 ```bash
@@ -73,7 +74,7 @@ Tests con base de datos PostgreSQL real (via testcontainers) para verificar repo
 pytest tests/integration/ -v
 ```
 
-#### API Tests (`tests/api/`) — 10 archivos
+#### API Tests (`tests/api/`) — 11 archivos
 
 Tests HTTP contra la API completa con dependencias mockeadas:
 
@@ -86,6 +87,7 @@ Tests HTTP contra la API completa con dependencias mockeadas:
 - `test_query.py` — Consultas IA con fake Gemini
 - `test_security.py` — Headers de seguridad, trusted proxy, rate limiter fallback
 - `test_modalidad_isolation.py` — 14 tests de aislamiento por modalidad [BR-MOD-02]
+- `test_modalidad_enforcement.py` — Enforcement de modalidad requerida en endpoints
 - `test_alertas.py` — CRUD alertas, summary, rebuild
 
 ```bash

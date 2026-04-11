@@ -16,7 +16,7 @@
 - **Consultas IA** — endpoint RAG que recupera métricas + comentarios y genera respuestas con Gemini
 - **Dashboards interactivos** — estadísticos (KPIs, radar, tendencias) y de sentimiento (temas, distribución)
 - **Auditoría completa** — cada llamada a Gemini se registra con prompt, tokens, latencia y resultado
-- **Procesamiento asíncrono** en segundo plano (Celery + Redis)
+- **Procesamiento asíncrono** en segundo plano (FastAPI BackgroundTasks; Celery disponible como perfil opcional)
 - **Arquitectura on-premise**, sin dependencia de servicios cloud externos (excepto Gemini API)
 
 ---
@@ -31,7 +31,8 @@
 | Backend                 | FastAPI + Python          | 3.12       |
 | ORM                     | SQLAlchemy 2.0 (async)    | 2.x        |
 | Base de datos           | PostgreSQL + pgvector     | 16         |
-| Cola de tareas          | Redis + Celery            | 7.x / 5.x  |
+| Cola de tareas          | FastAPI BackgroundTasks   | —          |
+| Cache / Rate-limit      | Redis                     | 7.x        |
 | Almacenamiento objetos  | MinIO                     | latest     |
 | Inteligencia artificial | Gemini API (google-genai) | 2.5-flash  |
 | Contenedores            | Docker + Docker Compose   | 24.x / 2.x |
@@ -81,7 +82,7 @@ Para desarrollo local sin Docker, ver [docs/local-development.md](docs/local-dev
 
 ```bash
 make dev          # Levantar todos los servicios en modo desarrollo
-make dev-worker   # Todo + Celery worker
+make dev-worker   # Todo + Celery worker (perfil opcional)
 make infra        # Solo infraestructura (postgres, redis, minio)
 make down         # Detener contenedores
 make down-clean   # Detener + eliminar volúmenes (¡destructivo!)
@@ -117,7 +118,7 @@ Evaluaciones_Docentes/
 │   ├── app/application/  → Servicios, parsing, clasificación
 │   ├── app/core/         → Config, logging
 │   ├── app/domain/       → Entidades, schemas, excepciones
-│   ├── app/infrastructure/ → DB, storage, Gemini, Celery
+│   ├── app/infrastructure/ → DB, storage, Gemini, tasks
 │   └── tests/            → Unit, integration, API tests (pytest)
 ├── infra/                → Docker Compose, Nginx, scripts
 ├── docs/                 → Documentación técnica

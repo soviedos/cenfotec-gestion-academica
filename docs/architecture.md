@@ -62,17 +62,14 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 │                                            │    │    │    │            │
 │                     ┌──────────────────────┘    │    │    └──────┐     │
 │                     ▼                           ▼    ▼          ▼     │
-│              ┌─────────────┐          ┌───────────┐  ┌────────────┐   │
-│              │ PostgreSQL  │          │   Redis    │  │   MinIO    │   │
-│              │ + pgvector  │          │   :6379    │  │ :9000/:9001│   │
-│              │    :5432    │          └─────┬──────┘  └────────────┘   │
-│              └─────────────┘                │                         │
-│                                      ┌──────▼──────┐                  │
-│                                      │   Celery    │                  │
-│                                      │   Worker(s) │                  │
-│                                      └──────┬──────┘                  │
-│                                             │                         │
-└─────────────────────────────────────────────┼─────────────────────────┘
+│                                      │   Redis    │  ┌────────────┐   │
+│              ┌─────────────┐          │   :6379    │  │   MinIO    │   │
+│              │ PostgreSQL  │          │   :6379    │  │ :9000/:9001│   │
+│              │ + pgvector  │          └───────────┘  └────────────┘   │
+│              │    :5432    │                                         │
+│              └─────────────┘                                         │
+│                                                                    │
+└────────────────────────────────────────────────┬───────────────────┘
                                               │ HTTPS (solo texto)
                                        ┌──────▼──────┐
                                        │  Gemini API │
@@ -82,17 +79,17 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 
 ### Capas del sistema
 
-| Capa               | Componente            | Responsabilidad principal                            |
-| ------------------ | --------------------- | ---------------------------------------------------- |
-| **Presentación**   | Next.js (App Router)  | Renderizado de páginas, interacción con el usuario   |
-| **Proxy**          | Nginx                 | Terminación TLS, enrutamiento, rate limiting         |
-| **API**            | FastAPI               | Validación, autenticación, orquestación de servicios |
-| **Dominio**        | Services (Python)     | Lógica de negocio pura: parseo, análisis, reportes   |
-| **Procesamiento**  | Celery Workers        | Ejecución asíncrona de tareas pesadas                |
-| **Persistencia**   | PostgreSQL + pgvector | Datos estructurados + embeddings vectoriales         |
-| **Almacenamiento** | MinIO                 | Archivos binarios (PDFs originales)                  |
-| **Mensajería**     | Redis                 | Broker de tareas Celery + caché ligero               |
-| **IA externa**     | Gemini API            | Análisis semántico y generación de embeddings        |
+| Capa               | Componente            | Responsabilidad principal                              |
+| ------------------ | --------------------- | ------------------------------------------------------ |
+| **Presentación**   | Next.js (App Router)  | Renderizado de páginas, interacción con el usuario     |
+| **Proxy**          | Nginx                 | Terminación TLS, enrutamiento, rate limiting           |
+| **API**            | FastAPI               | Validación, autenticación, orquestación de servicios   |
+| **Dominio**        | Services (Python)     | Lógica de negocio pura: parseo, análisis, reportes     |
+| **Procesamiento**  | BackgroundTasks       | Ejecución asíncrona de tareas de procesamiento de PDFs |
+| **Persistencia**   | PostgreSQL + pgvector | Datos estructurados + embeddings vectoriales           |
+| **Almacenamiento** | MinIO                 | Archivos binarios (PDFs originales)                    |
+| **Mensajería**     | Redis                 | Caché ligero + rate limiter                            |
+| **IA externa**     | Gemini API            | Análisis semántico y generación de embeddings          |
 
 ---
 
@@ -116,7 +113,7 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 | -------------------------- | --------------------------------------------------------- |
 | Validación de entrada      | Schemas Pydantic validan todo request antes de procesarlo |
 | Autenticación/Autorización | Middleware JWT o session-based para usuarios internos     |
-| Orquestación               | Recibe requests, delega al service o encola tarea Celery  |
+| Orquestación               | Recibe requests, delega al service o lanza BackgroundTask |
 | Serialización de respuesta | Schemas de salida garantizan formato consistente          |
 | Documentación automática   | OpenAPI/Swagger generado automáticamente                  |
 
@@ -136,16 +133,15 @@ El sistema recibe evaluaciones docentes en formato PDF (documentos homogéneos c
 | `dashboard_service`         | Agregaciones para dashboard ejecutivo (KPIs, tendencias, insights) |
 | `gemini_enrichment_service` | Enriquecimiento de comentarios con Gemini (clasificación avanzada) |
 
-**Principio:** los servicios son clases sin dependencia de FastAPI. Reciben repositorios por inyección de dependencias. Se invocan desde endpoints y desde tareas Celery indistintamente.
+**Principio:** los servicios son clases sin dependencia de FastAPI. Reciben repositorios por inyección de dependencias. Se invocan desde endpoints y desde BackgroundTasks indistintamente.
 
-### 3.4 Capa de Procesamiento (Celery)
+### 3.4 Capa de Procesamiento (BackgroundTasks)
 
-| Responsabilidad         | Detalle                                                         |
-| ----------------------- | --------------------------------------------------------------- |
-| Procesamiento asíncrono | Desacopla la carga del PDF de su análisis                       |
-| Pipeline encadenado     | `upload → parseo → análisis → embeddings` como cadena de tareas |
-| Retry automático        | Reintentos con backoff exponencial ante fallos de Gemini API    |
-| Monitoreo               | Flower (UI) para inspección de tareas en tiempo real            |
+| Responsabilidad         | Detalle                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| Procesamiento asíncrono | Desacopla la carga del PDF de su análisis                          |
+| Pipeline secuencial     | `upload → parseo → clasificación → enriquecimiento → persistencia` |
+| Manejo de errores       | Fallos marcan `documentos.estado = 'error'`                        |
 
 ### 3.5 Capa de Persistencia (PostgreSQL + pgvector)
 
@@ -183,7 +179,7 @@ Usuario                Frontend              Backend API            MinIO       
   │                       │                      │                    │── almacena PDF   │
   │                       │                      │── INSERT ─────────────────────────────▶│
   │                       │                      │   (estado: "pendiente")               │
-  │                       │                      │── enqueue task ──▶ Redis              │
+  │                       │                      │── enqueue(BackgroundTask)
   │                       │◀── 202 Accepted ─────│                                       │
   │◀── "PDF en cola" ─────│                                                              │
 ```
@@ -191,13 +187,13 @@ Usuario                Frontend              Backend API            MinIO       
 **Puntos clave:**
 
 - El backend responde `202 Accepted` inmediatamente. No espera el procesamiento
-- El PDF se almacena en MinIO antes de encolar. Si Celery falla, el archivo no se pierde
+- El PDF se almacena en MinIO antes de encolar. Si el procesamiento falla, el archivo no se pierde
 - Se calcula hash SHA-256 del PDF para detectar duplicados
 
-### 4.2 Fase de Procesamiento (Celery Worker)
+### 4.2 Fase de Procesamiento (BackgroundTask)
 
 ```
-Celery Worker          MinIO          pdf_parser        classifier         PostgreSQL
+BackgroundTask         MinIO          pdf_parser        classifier         PostgreSQL
      │                   │                │                  │                  │
      │── get_object() ──▶│                │                  │                  │
      │◀── PDF bytes ─────│                │                  │                  │
@@ -209,13 +205,13 @@ Celery Worker          MinIO          pdf_parser        classifier         Postg
      │── UPDATE documento (estado: "completado") ─────────────────────────────▶│
 ```
 
-**Pipeline Celery:**
+**Pipeline BackgroundTask:**
 
 ```
-task_process_pdf → parse_evaluacion → classify_comments → persist (transacción)
+process_pdf → parse_evaluacion → classify_comments → persist (transacción)
 ```
 
-Todo ocurre en una sola tarea (`task_process_pdf`) con transacción atómica. Si falla cualquier paso, se hace rollback y `documentos.estado = "error"`. Reintentos con backoff exponencial ante fallos transitorios.
+Todo ocurre en una sola tarea con transacción atómica. Si falla cualquier paso, se hace rollback y `documentos.estado = "error"`.
 
 ### 4.3 Fase de Consulta IA (RAG)
 
@@ -317,7 +313,7 @@ backend/app/
 │   │   ├── file_storage.py        → Protocolo de almacenamiento
 │   │   └── minio_client.py        → Cliente MinIO (upload/download/delete)
 │   └── tasks/
-│       └── celery_app.py          → Configuración Celery + Redis + task_process_pdf
+│       └── celery_app.py          → Configuración Celery + Redis (reservado para migración futura)
 └── core/
     ├── config.py                  → Settings (BaseSettings + validación producción)
     ├── cache.py                   → Decorador @cached con TTL para Redis
@@ -387,20 +383,20 @@ infra/
 | D3  | **Next.js App Router (MPA)** | Pages Router, Vite+React      | Route groups para layouts por sección, Server Components, streaming, formato MPA natural      |
 | D4  | **pgvector**                 | Pinecone, Weaviate, ChromaDB  | On-prem sin dependencia externa, misma instancia PostgreSQL, consultas SQL+vector en un query |
 | D5  | **MinIO**                    | Sistema de archivos, S3       | API 100% compatible S3, UI de admin, replicable, migración futura a S3 trivial                |
-| D6  | **Celery + Redis**           | Dramatiq, RQ, ARQ             | Ecosistema maduro, retry policies configurables, monitoreo con Flower, amplia documentación   |
+| D6  | **FastAPI BackgroundTasks**  | Celery, Dramatiq, RQ, ARQ     | Suficiente para volumen actual. Sin infraestructura adicional. Migrable a Celery si escala    |
 | D7  | **PyMuPDF (fitz)**           | pdfplumber, Tabula, pypdf     | Más rápido en benchmarks, soporte completo de texto + layout, mantenido activamente           |
 | D8  | **Gemini API**               | OpenAI, Claude API, local LLM | Disponibilidad, costo competitivo, buen rendimiento en extracción estructurada                |
 
 ### 6.2 Decisiones de Diseño
 
-| #   | Decisión                              | Justificación                                                                                                            |
-| --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| D9  | **Procesamiento async (no síncrono)** | Un PDF puede tardar 5-30s en procesarse. Bloquear el request HTTP degradaría la UX. El usuario recibe feedback inmediato |
-| D10 | **Versionado de API (/api/v1/)**      | Cuando el formato de PDF cambie, v2 puede coexistir sin romper clientes existentes                                       |
-| D11 | **Services desacoplados de FastAPI**  | Los services se invocan desde endpoints y desde tareas Celery. No dependen del ciclo HTTP                                |
-| D12 | **Hash SHA-256 para deduplicación**   | Previene procesamiento duplicado de un mismo PDF                                                                         |
-| D13 | **Texto a Gemini, nunca el PDF**      | Minimiza datos sensibles enviados externamente. El PDF nunca sale de la red interna                                      |
-| D14 | **Pipeline Celery en cadena**         | Cada paso es retryable de forma independiente. Un fallo en embeddings no obliga a reparsear el PDF                       |
+| #   | Decisión                                  | Justificación                                                                                                                  |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| D9  | **Procesamiento async (no síncrono)**     | Un PDF puede tardar 5-30s en procesarse. Bloquear el request HTTP degradaría la UX. El usuario recibe feedback inmediato       |
+| D10 | **Versionado de API (/api/v1/)**          | Cuando el formato de PDF cambie, v2 puede coexistir sin romper clientes existentes                                             |
+| D11 | **Services desacoplados de FastAPI**      | Los services se invocan desde endpoints y desde BackgroundTasks. No dependen del ciclo HTTP                                    |
+| D12 | **Hash SHA-256 para deduplicación**       | Previene procesamiento duplicado de un mismo PDF                                                                               |
+| D13 | **Texto a Gemini, nunca el PDF**          | Minimiza datos sensibles enviados externamente. El PDF nunca sale de la red interna                                            |
+| D14 | **Pipeline secuencial en BackgroundTask** | Un solo paso atómico: parseo → clasificación → enriquecimiento → persistencia. Migrable a Celery si se necesita retry granular |
 
 ### 6.3 Decisiones de Infraestructura
 
@@ -418,7 +414,7 @@ infra/
 
 | #   | Riesgo                                      | Probabilidad | Impacto | Mitigación                                                                                                                              |
 | --- | ------------------------------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | **Gemini API no disponible o rate limited** | Media        | Alto    | Retry con backoff exponencial. Cola Celery retiene tareas. Procesamiento no se pierde, solo se retrasa                                  |
+| R1  | **Gemini API no disponible o rate limited** | Media        | Alto    | Retry con backoff exponencial en GeminiGateway. Procesamiento de PDFs no depende de Gemini (solo consultas IA)                          |
 | R2  | **PDFs con formato inesperado**             | Media        | Medio   | Validación de estructura en `pdf_parser` antes de enviar a Gemini. Log detallado de PDFs rechazados. Endpoint de reprocesamiento manual |
 | R3  | **Crecimiento de datos en pgvector**        | Baja         | Medio   | Índice HNSW con parámetros tuneables. Particionamiento por periodo si supera 1M registros. Monitoreo de query time                      |
 | R4  | **Fuga de datos sensibles a Gemini**        | Baja         | Alto    | Solo se envía texto extraído, nunca el PDF. Se puede agregar capa de anonimización antes del envío. Logs de auditoría de cada llamada   |
@@ -427,12 +423,12 @@ infra/
 
 ### 7.2 Riesgos Operacionales
 
-| #   | Riesgo                                           | Probabilidad | Impacto | Mitigación                                                                                                                                  |
-| --- | ------------------------------------------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| R7  | **Pérdida de datos por fallo de VM**             | Baja         | Crítico | Backups diarios de PostgreSQL (pg_dump). MinIO con replicación o backup. Docker volumes en storage redundante de Proxmox                    |
-| R8  | **Actualización de Gemini API rompe respuestas** | Media        | Medio   | Versionar el modelo usado (e.g., `gemini-2.5-flash`). Schema Pydantic estricto valida respuesta. Tests de integración contra API real       |
-| R9  | **Equipo no familiarizado con el stack**         | Media        | Medio   | Documentación detallada. ADRs para cada decisión. README por módulo. Makefile simplifica operaciones                                        |
-| R10 | **Degradación de rendimiento con volumen**       | Baja         | Medio   | Índices en columnas de filtro frecuente. Connection pooling con SQLAlchemy. Celery concurrency configurable. Monitoreo con Flower + pg_stat |
+| #   | Riesgo                                           | Probabilidad | Impacto | Mitigación                                                                                                                                        |
+| --- | ------------------------------------------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R7  | **Pérdida de datos por fallo de VM**             | Baja         | Crítico | Backups diarios de PostgreSQL (pg_dump). MinIO con replicación o backup. Docker volumes en storage redundante de Proxmox                          |
+| R8  | **Actualización de Gemini API rompe respuestas** | Media        | Medio   | Versionar el modelo usado (e.g., `gemini-2.5-flash`). Schema Pydantic estricto valida respuesta. Tests de integración contra API real             |
+| R9  | **Equipo no familiarizado con el stack**         | Media        | Medio   | Documentación detallada. ADRs para cada decisión. README por módulo. Makefile simplifica operaciones                                              |
+| R10 | **Degradación de rendimiento con volumen**       | Baja         | Medio   | Índices en columnas de filtro frecuente. Connection pooling con SQLAlchemy. BackgroundTasks migrable a Celery si necesario. Monitoreo con pg_stat |
 
 ### 7.3 Matriz de Prioridad
 
@@ -463,11 +459,10 @@ Proxmox Host
 │   ├── Docker: nginx (proxy)
 │   ├── Docker: frontend (next.js)
 │   ├── Docker: backend (fastapi)
-│   ├── Docker: celery-worker (x2)
 │   ├── Docker: postgres + pgvector
 │   ├── Docker: redis
 │   ├── Docker: minio
-│   └── Docker: flower (monitoreo)
+│   └── Docker: celery-worker (perfil opcional, reservado para migración futura)
 │
 └── VM: evaluaciones-dev (opcional)
     └── (misma topología, datos de prueba)
@@ -511,10 +506,10 @@ Proxmox Host
         └──────────┘│    └──┬──┬──┬─┘
                     │       │  │  │
                     │       │  │  └────────▶ MinIO
-                    │       │  └───────────▶ Redis ──▶ Celery Worker
-                    │       └──────────────▶ PostgreSQL     │
-                    │                          ▲            │
-                    │                          └────────────┘
-                    │                       (worker escribe resultados)
+                    │       │  └───────────▶ Redis (cache / rate-limit)
+                    │       └──────────────▶ PostgreSQL
+                    │                          ▲
+                    │                          │
+                    │                    (BackgroundTask escribe resultados)
                     └──────────────────────────────────────────────────
 ```

@@ -1,6 +1,6 @@
 # Backend — Evaluaciones Docentes
 
-> API REST construida con FastAPI y Python 3.12, con procesamiento asíncrono vía Celery y análisis con Gemini API.
+> API REST construida con FastAPI y Python 3.12, con procesamiento asíncrono vía BackgroundTasks y análisis con Gemini API.
 
 ---
 
@@ -12,8 +12,7 @@
 | [SQLAlchemy 2.0](https://www.sqlalchemy.org/)    | ORM con soporte async                      |
 | [Alembic](https://alembic.sqlalchemy.org/)       | Migraciones de base de datos               |
 | [Pydantic v2](https://docs.pydantic.dev/)        | Validación de datos y settings             |
-| [Celery](https://docs.celeryq.dev/)              | Cola de tareas asíncronas                  |
-| [Redis](https://redis.io/)                       | Broker para Celery                         |
+| [Redis](https://redis.io/)                       | Cache y rate-limiting                      |
 | [MinIO](https://min.io/)                         | Almacenamiento de objetos (PDFs)           |
 | [pgvector](https://github.com/pgvector/pgvector) | Embeddings y búsqueda semántica            |
 | [PyMuPDF](https://pymupdf.readthedocs.io/)       | Extracción de texto de PDFs                |
@@ -55,7 +54,7 @@ backend/
 │   │   │   └── gemini_gateway.py    → Wrapper Gemini con retry + circuit breaker
 │   │   ├── repositories/            → Repositorios (PostgreSQL)
 │   │   ├── storage/                 → MinIO client
-│   │   └── tasks/                   → Tareas Celery
+│   │   └── tasks/                   → Celery (reservado para migración futura)
 ├── scripts/                         → Scripts operacionales (backfill, reanalyze)
 ├── tests/
 │   ├── conftest.py                  → Fixtures compartidos (TestClient, DB)
@@ -133,8 +132,8 @@ alembic -c app/db/migrations/alembic.ini revision --autogenerate -m "descripcion
 # Aplicar migraciones
 alembic -c app/db/migrations/alembic.ini upgrade head
 
-# Iniciar worker Celery
-celery -A app.tasks.celery_app worker --loglevel=info
+# Iniciar worker Celery (opcional, no requerido en modo BackgroundTasks)
+# celery -A app.infrastructure.tasks.celery_app worker --loglevel=info
 ```
 
 ---

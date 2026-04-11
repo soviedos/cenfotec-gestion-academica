@@ -1,7 +1,7 @@
 # Contratos de API
 
 > Especificación completa de endpoints REST, request/response schemas y convenciones.
-> Última actualización: 2026-04-08
+> Última actualización: 2026-04-11
 
 Base URL: `http://localhost:8000/api/v1`
 
@@ -12,10 +12,10 @@ Documentación interactiva (Swagger): `http://localhost:8000/docs`
 ## Índice
 
 1. [Health Check](#health-check)
-2. [Documentos](#documentos) (4 endpoints)
+2. [Documentos](#documentos) (5 endpoints)
 3. [Evaluaciones](#evaluaciones) (1 endpoint)
-4. [Analytics](#analytics) (5 endpoints) — `modalidad` [BR-MOD-02]
-5. [Qualitative](#qualitative) (7 endpoints) — `modalidad` [BR-MOD-02]
+4. [Analytics](#analytics) (8 endpoints) — `modalidad` **obligatorio** [BR-MOD-02]
+5. [Qualitative](#qualitative) (7 endpoints) — `modalidad` **obligatorio** [BR-MOD-02]
 6. [Query](#query) (1 endpoint) — Consultas IA (RAG + Gemini)
 7. [Dashboard](#dashboard) (1 endpoint)
 8. [Alertas](#alertas) (4 endpoints)
@@ -34,11 +34,14 @@ GET /health
 
 ```json
 {
-  "status": "ok",
+  "status": "ok | degraded",
   "version": "0.1.0",
-  "environment": "development"
+  "environment": "development",
+  "database": "connected | unreachable"
 }
 ```
+
+`status` devuelve `"degraded"` si la base de datos no responde.
 
 ---
 
@@ -106,6 +109,16 @@ DELETE /api/v1/documentos/{documento_id}
 
 **Response 204:** Sin contenido. Elimina documento, archivo en MinIO y evaluaciones asociadas (CASCADE).
 
+### Descargar PDF
+
+```
+GET /api/v1/documentos/{documento_id}/download
+```
+
+**Response 200:** Archivo PDF binario (`application/pdf`), con header `Content-Disposition: inline`.
+
+**Errores:** `404` si el documento no existe.
+
 ---
 
 ## Evaluaciones
@@ -154,7 +167,46 @@ GET /api/v1/evaluaciones/
 
 ## Analytics
 
-Todos los endpoints de analytics soportan el parámetro `modalidad` para aislamiento por modalidad [BR-MOD-02].
+Todos los endpoints de analytics **requieren** el parámetro `modalidad` para aislamiento por modalidad [BR-MOD-02]. Adicionalmente soportan filtros opcionales `escuela` y `curso`.
+
+### Períodos disponibles
+
+```
+GET /api/v1/analytics/periodos
+```
+
+| Query Param | Tipo   | Default | Descripción                      |
+| ----------- | ------ | ------- | -------------------------------- |
+| `modalidad` | string | —       | Filtrar por modalidad (opcional) |
+
+**Response 200:** `PeriodoOption[]` — Lista de períodos con su modalidad, ordenados cronológicamente.
+
+### Escuelas disponibles
+
+```
+GET /api/v1/analytics/escuelas
+```
+
+| Query Param | Tipo   | Default | Descripción                      |
+| ----------- | ------ | ------- | -------------------------------- |
+| `modalidad` | string | —       | Filtrar por modalidad (opcional) |
+| `periodo`   | string | —       | Filtrar por período (opcional)   |
+
+**Response 200:** `string[]` — Lista de escuelas.
+
+### Cursos disponibles
+
+```
+GET /api/v1/analytics/cursos
+```
+
+| Query Param | Tipo   | Default | Descripción                      |
+| ----------- | ------ | ------- | -------------------------------- |
+| `escuela`   | string | —       | Filtrar por escuela (opcional)   |
+| `modalidad` | string | —       | Filtrar por modalidad (opcional) |
+| `periodo`   | string | —       | Filtrar por período (opcional)   |
+
+**Response 200:** `string[]` — Lista de cursos.
 
 ### Resumen general
 
@@ -162,10 +214,12 @@ Todos los endpoints de analytics soportan el parámetro `modalidad` para aislami
 GET /api/v1/analytics/resumen
 ```
 
-| Query Param | Tipo   | Default | Descripción           |
-| ----------- | ------ | ------- | --------------------- |
-| `periodo`   | string | —       | Filtrar por período   |
-| `modalidad` | string | —       | Filtrar por modalidad |
+| Query Param | Tipo   | Default | Descripción                             |
+| ----------- | ------ | ------- | --------------------------------------- |
+| `modalidad` | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `periodo`   | string | —       | Filtrar por período                     |
+| `escuela`   | string | —       | Filtrar por escuela                     |
+| `curso`     | string | —       | Filtrar por curso                       |
 
 **Response 200:**
 
@@ -184,12 +238,14 @@ GET /api/v1/analytics/resumen
 GET /api/v1/analytics/docentes
 ```
 
-| Query Param | Tipo   | Default | Descripción               |
-| ----------- | ------ | ------- | ------------------------- |
-| `periodo`   | string | —       | Filtrar por período       |
-| `modalidad` | string | —       | Filtrar por modalidad     |
-| `limit`     | int    | `50`    | Máximo resultados (1-200) |
-| `offset`    | int    | `0`     | Desplazamiento            |
+| Query Param | Tipo   | Default | Descripción                             |
+| ----------- | ------ | ------- | --------------------------------------- |
+| `modalidad` | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `periodo`   | string | —       | Filtrar por período                     |
+| `escuela`   | string | —       | Filtrar por escuela                     |
+| `curso`     | string | —       | Filtrar por curso                       |
+| `limit`     | int    | `50`    | Máximo resultados (1-200)               |
+| `offset`    | int    | `0`     | Desplazamiento                          |
 
 **Response 200:** `DocentePromedio[]`
 
@@ -199,11 +255,13 @@ GET /api/v1/analytics/docentes
 GET /api/v1/analytics/dimensiones
 ```
 
-| Query Param | Tipo   | Default | Descripción           |
-| ----------- | ------ | ------- | --------------------- |
-| `periodo`   | string | —       | Filtrar por período   |
-| `docente`   | string | —       | Filtrar por docente   |
-| `modalidad` | string | —       | Filtrar por modalidad |
+| Query Param | Tipo   | Default | Descripción                             |
+| ----------- | ------ | ------- | --------------------------------------- |
+| `modalidad` | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `periodo`   | string | —       | Filtrar por período                     |
+| `docente`   | string | —       | Filtrar por docente                     |
+| `escuela`   | string | —       | Filtrar por escuela                     |
+| `curso`     | string | —       | Filtrar por curso                       |
 
 **Response 200:** `DimensionPromedio[]`
 
@@ -225,10 +283,12 @@ GET /api/v1/analytics/dimensiones
 GET /api/v1/analytics/evolucion
 ```
 
-| Query Param | Tipo   | Default | Descripción           |
-| ----------- | ------ | ------- | --------------------- |
-| `docente`   | string | —       | Filtrar por docente   |
-| `modalidad` | string | —       | Filtrar por modalidad |
+| Query Param | Tipo   | Default | Descripción                             |
+| ----------- | ------ | ------- | --------------------------------------- |
+| `modalidad` | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `docente`   | string | —       | Filtrar por docente                     |
+| `escuela`   | string | —       | Filtrar por escuela                     |
+| `curso`     | string | —       | Filtrar por curso                       |
 
 **Response 200:** `PeriodoMetrica[]`
 
@@ -238,11 +298,13 @@ GET /api/v1/analytics/evolucion
 GET /api/v1/analytics/ranking
 ```
 
-| Query Param | Tipo   | Default | Descripción            |
-| ----------- | ------ | ------- | ---------------------- |
-| `periodo`   | string | —       | Filtrar por período    |
-| `modalidad` | string | —       | Filtrar por modalidad  |
-| `limit`     | int    | `10`    | Top N docentes (1-100) |
+| Query Param | Tipo   | Default | Descripción                             |
+| ----------- | ------ | ------- | --------------------------------------- |
+| `modalidad` | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `periodo`   | string | —       | Filtrar por período                     |
+| `escuela`   | string | —       | Filtrar por escuela                     |
+| `curso`     | string | —       | Filtrar por curso                       |
+| `limit`     | int    | `10`    | Top N docentes (1-100)                  |
 
 **Response 200:** `RankingDocente[]`
 
@@ -250,7 +312,7 @@ GET /api/v1/analytics/ranking
 
 ## Qualitative
 
-Análisis cualitativo de comentarios. Todos los endpoints (excepto `/filtros`) soportan `modalidad` [BR-MOD-02].
+Análisis cualitativo de comentarios. Todos los endpoints (excepto `/filtros`) **requieren** `modalidad` [BR-MOD-02].
 
 ### Filtros disponibles
 
@@ -275,13 +337,13 @@ GET /api/v1/qualitative/filtros
 GET /api/v1/qualitative/resumen
 ```
 
-| Query Param  | Tipo   | Default | Descripción            |
-| ------------ | ------ | ------- | ---------------------- |
-| `periodo`    | string | —       | Filtrar por período    |
-| `docente`    | string | —       | Filtrar por docente    |
-| `asignatura` | string | —       | Filtrar por asignatura |
-| `escuela`    | string | —       | Filtrar por escuela    |
-| `modalidad`  | string | —       | Filtrar por modalidad  |
+| Query Param  | Tipo   | Default | Descripción                             |
+| ------------ | ------ | ------- | --------------------------------------- |
+| `modalidad`  | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02] |
+| `periodo`    | string | —       | Filtrar por período                     |
+| `docente`    | string | —       | Filtrar por docente                     |
+| `asignatura` | string | —       | Filtrar por asignatura                  |
+| `escuela`    | string | —       | Filtrar por escuela                     |
 
 **Response 200:** `ResumenCualitativo`
 
@@ -436,7 +498,7 @@ GET /api/v1/alertas
 
 | Query Param   | Tipo   | Default | Descripción                                        |
 | ------------- | ------ | ------- | -------------------------------------------------- |
-| `modalidad`   | string | —       | Filtrar por modalidad                              |
+| `modalidad`   | string | **Req** | Modalidad (**obligatorio**) [BR-MOD-02]            |
 | `anio`        | int    | —       | Filtrar por año                                    |
 | `periodo`     | string | —       | Filtrar por periodo                                |
 | `severidad`   | string | —       | `alta`, `media`, `baja`                            |
@@ -571,7 +633,9 @@ Todos los endpoints que retornan listas paginadas usan el schema `PaginatedItems
 
 ### Filtro por modalidad [BR-MOD-02]
 
-Los endpoints de analytics, qualitative y evaluaciones aceptan `modalidad` como query parameter opcional. Cuando se proporciona, los datos se filtran para mostrar solo evaluaciones de esa modalidad (`CUATRIMESTRAL`, `MENSUAL`, `B2B`). Cuando se omite, se retornan datos de todas las modalidades.
+Los endpoints de analytics y qualitative **requieren** `modalidad` como query parameter obligatorio. El valor debe ser una de las modalidades válidas: `CUATRIMESTRAL`, `MENSUAL`, `B2B`. Si se omite, el backend responde con `422`.
+
+Los endpoints de evaluaciones y alertas aceptan `modalidad` como filtro opcional.
 
 ### Manejo de errores
 
