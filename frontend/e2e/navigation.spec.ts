@@ -1,24 +1,49 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Navigation", () => {
-  test("root redirects to /inicio", async ({ page }) => {
+  test("root redirects to /dashboard", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL("/inicio");
+    await expect(page).toHaveURL("/dashboard");
   });
 
-  test("displays the Inicio page with heading", async ({ page }) => {
-    await page.goto("/inicio");
-    await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
+  test("displays the Dashboard page with heading", async ({ page }) => {
+    await page.goto("/dashboard");
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
   });
 
-  test("sidebar navigation works for all sections", async ({ page }) => {
-    await page.goto("/inicio");
+  test("evaluacion-docente redirects to inicio", async ({ page }) => {
+    await page.goto("/evaluacion-docente");
+    await expect(page).toHaveURL("/evaluacion-docente/inicio");
+  });
+
+  test("sidebar navigation works for evaluacion-docente sections", async ({
+    page,
+  }) => {
+    await page.goto("/evaluacion-docente/inicio");
 
     const routes = [
-      { label: "Carga de PDFs", url: "/carga", heading: "Cargar PDFs" },
-      { label: "Biblioteca", url: "/biblioteca", heading: "Biblioteca" },
-      { label: "Docentes", url: "/docentes", heading: "Docentes" },
-      { label: "Reportes", url: "/reportes", heading: "Reportes" },
+      {
+        label: "Carga de PDFs",
+        url: "/evaluacion-docente/carga",
+        heading: "Cargar PDFs",
+      },
+      {
+        label: "Biblioteca",
+        url: "/evaluacion-docente/biblioteca",
+        heading: "Biblioteca",
+      },
+      {
+        label: "Docentes",
+        url: "/evaluacion-docente/docentes",
+        heading: "Docentes",
+      },
+      {
+        label: "Reportes",
+        url: "/evaluacion-docente/reportes",
+        heading: "Reportes",
+      },
     ];
 
     for (const route of routes) {
@@ -31,7 +56,7 @@ test.describe("Navigation", () => {
   });
 
   test("page has correct document title", async ({ page }) => {
-    await page.goto("/carga");
+    await page.goto("/evaluacion-docente/carga");
     await expect(page).toHaveTitle(/Cargar PDFs/);
   });
 });

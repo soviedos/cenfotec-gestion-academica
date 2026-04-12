@@ -23,7 +23,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="text-sm font-medium text-muted-foreground">
-          Plataforma de Análisis de Evaluaciones Docentes
+          Gestión Académica
         </h1>
       </div>
 

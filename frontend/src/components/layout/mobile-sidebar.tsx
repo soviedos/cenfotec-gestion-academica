@@ -24,7 +24,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-64 p-0">
         <SheetHeader className="flex h-14 flex-row items-center gap-2.5 border-b px-4">
-          <Link href="/inicio" onClick={() => onOpenChange(false)}>
+          <Link href="/dashboard" onClick={() => onOpenChange(false)}>
             <Image
               src="/images/logo-cenfotc-Horizontal-Negro.png"
               alt="Universidad CENFOTEC"
@@ -47,7 +47,8 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                 {group.items.map((item) => {
                   const isActive =
                     pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
+                    (item.href !== "/dashboard" &&
+                      pathname.startsWith(`${item.href}/`));
 
                   return (
                     <li key={item.href}>

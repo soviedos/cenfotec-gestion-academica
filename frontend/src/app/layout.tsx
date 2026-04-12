@@ -8,10 +8,10 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: {
-    default: "Evaluaciones Docentes",
-    template: "%s | Evaluaciones Docentes",
+    default: "Gestión Académica",
+    template: "%s | Gestión Académica",
   },
-  description: "Plataforma interna de análisis de evaluaciones docentes",
+  description: "Plataforma interna de gestión académica institucional",
 };
 
 export default function RootLayout({
