@@ -14,6 +14,11 @@ jobs:
           git fetch origin
           git reset --hard origin/main
 
+      - name: Ensure .env exists
+        run: |
+          cd /opt/cenfotec-gestion-academica
+          test -f .env || cp .env.example .env
+
       - name: Rebuild and restart containers
         run: |
           cd /opt/cenfotec-gestion-academica

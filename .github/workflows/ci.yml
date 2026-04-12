@@ -42,6 +42,8 @@ jobs:
         env:
           ENVIRONMENT: testing
           PYTHONPATH: .
+          DATABASE_URL: "sqlite+aiosqlite://"
+          MINIO_ENDPOINT: "localhost:9000"
 
   # ──────────────────────────────────────────────
   # Frontend: Node 22 — eslint + type-check + test + build
