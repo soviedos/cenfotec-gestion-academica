@@ -10,11 +10,13 @@ import uuid
 
 import pytest
 
-from app.domain.alert_rules import AlertCandidate
-from app.domain.entities.enums import Severidad, TipoAlerta
-from app.infrastructure.repositories.alerta_repo import AlertaRepository
-from app.infrastructure.repositories.documento import DocumentoRepository
-from app.infrastructure.repositories.evaluacion import EvaluacionRepository
+from app.modules.evaluacion_docente.domain.alert_rules import AlertCandidate
+from app.modules.evaluacion_docente.domain.entities.enums import Severidad, TipoAlerta
+from app.modules.evaluacion_docente.infrastructure.repositories.alerta_repo import AlertaRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.documento import DocumentoRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.evaluacion import (
+    EvaluacionRepository,
+)
 from tests.fixtures.factories import make_comentario, make_documento, make_evaluacion
 
 pytestmark = pytest.mark.integration

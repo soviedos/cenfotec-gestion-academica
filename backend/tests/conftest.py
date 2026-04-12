@@ -25,10 +25,10 @@ from sqlalchemy.pool import NullPool, StaticPool
 
 from app.api.deps import get_file_storage, get_gemini_gateway
 from app.api.rate_limit import query_rate_limiter
-from app.core.cache import analytics_cache
-from app.domain.entities.base import Base
-from app.infrastructure.database.session import get_db
 from app.main import app
+from app.shared.core.cache import analytics_cache
+from app.shared.domain.entities.base import Base
+from app.shared.infrastructure.database.session import get_db
 from tests.fixtures.fakes import FakeFileStorage, FakeGeminiGateway
 
 logger = logging.getLogger(__name__)

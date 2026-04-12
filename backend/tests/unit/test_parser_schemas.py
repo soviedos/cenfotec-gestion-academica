@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.application.parsing.schemas import (
+from app.modules.evaluacion_docente.application.parsing.schemas import (
     Comentario,
     CursoGrupo,
     DimensionMetrica,

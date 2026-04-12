@@ -7,7 +7,7 @@ on golden-file fixtures.
 
 import fitz  # PyMuPDF
 
-from app.application.parsing.parser import parse_evaluacion
+from app.modules.evaluacion_docente.application.parsing.parser import parse_evaluacion
 
 # ── Helper: build a minimal evaluation PDF ──────────────────────────────
 

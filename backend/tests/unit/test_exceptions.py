@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.domain.exceptions import DomainError, DuplicateError, NotFoundError, ValidationError
+from app.shared.domain.exceptions import DomainError, DuplicateError, NotFoundError, ValidationError
 
 
 class TestDomainError:

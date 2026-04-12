@@ -22,7 +22,7 @@ class TestHealthEndpoint:
         assert "environment" in data
 
     async def test_version_matches_settings(self, client):
-        from app.core.config import settings
+        from app.shared.core.config import settings
 
         response = await client.get("/health")
 

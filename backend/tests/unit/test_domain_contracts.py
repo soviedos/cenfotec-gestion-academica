@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.application.services.alert_engine import AlertEngine
-from app.domain.alert_rules import (
+from app.modules.evaluacion_docente.application.services.alert_engine import AlertEngine
+from app.modules.evaluacion_docente.domain.alert_rules import (
     ALERT_THRESHOLD_HIGH,
     ALERT_THRESHOLD_LOW,
     ALERT_THRESHOLD_MEDIUM,
@@ -41,21 +41,27 @@ from app.domain.alert_rules import (
     PatronDetector,
     SentimientoDetector,
 )
-from app.domain.entities.enums import Modalidad, Severidad, TipoAlerta
-from app.domain.exceptions import ModalidadInvalidaError, ModalidadRequeridaError, ValidationError
-from app.domain.invariants import (
+from app.modules.evaluacion_docente.domain.entities.enums import Modalidad, Severidad, TipoAlerta
+from app.modules.evaluacion_docente.domain.exceptions import (
+    ModalidadInvalidaError,
+    ModalidadRequeridaError,
+)
+from app.modules.evaluacion_docente.domain.invariants import (
     MODALIDADES_ANALISIS,
     require_modalidad,
     require_modalidad_valid,
     require_periodo_orden,
 )
-from app.domain.periodo import (
+from app.modules.evaluacion_docente.domain.periodo import (
     determinar_modalidad,
     parse_periodo,
     periodo_sort_key,
     sort_periodos,
     validar_periodo,
 )
+from app.shared.domain.exceptions import ValidationError
+
+_AE_MOD = "app.modules.evaluacion_docente.application.services.alert_engine"
 
 _UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 _UUID2 = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -404,7 +410,7 @@ class TestAlertLastTwoPeriodsWindow:
     async def test_two_periods_both_used(self):
         """With 2 periods, engine uses index 0 as actual, index 1 as anterior."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C2 2025", "C1 2025"])
             repo.load_snapshots = AsyncMock(
@@ -428,7 +434,7 @@ class TestAlertLastTwoPeriodsWindow:
     async def test_single_period_only_absolute_alerts(self):
         """With 1 period, only absolute detectors fire (no anterior)."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
             repo.load_snapshots = AsyncMock(
@@ -455,7 +461,7 @@ class TestAlertLastTwoPeriodsWindow:
     async def test_zero_periods_no_processing(self):
         """No periods → no processing, no upsert."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=[])
 
@@ -470,7 +476,7 @@ class TestAlertLastTwoPeriodsWindow:
     async def test_three_periods_engine_receives_all_but_uses_window(self):
         """Even if repo returns 3 periods, engine pairs idx 0 (actual) vs idx 1 (anterior)."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C3 2025", "C2 2025", "C1 2025"])
             repo.load_snapshots = AsyncMock(
@@ -509,7 +515,7 @@ class TestAlertModalidadIsolation:
     async def test_run_all_processes_each_independently(self):
         """run_all calls run_for_modalidad once per alertable modalidad."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             calls: list[str] = []
 

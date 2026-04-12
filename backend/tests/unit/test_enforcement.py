@@ -12,11 +12,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
-from app.application.parsing.schemas import PeriodoData
-from app.application.services.alert_engine import AlertEngine
-from app.domain.entities.enums import Modalidad
-from app.domain.exceptions import ModalidadInvalidaError, ModalidadRequeridaError, ValidationError
-from app.domain.invariants import (
+from app.modules.evaluacion_docente.application.parsing.schemas import PeriodoData
+from app.modules.evaluacion_docente.application.services.alert_engine import AlertEngine
+from app.modules.evaluacion_docente.domain.entities.enums import Modalidad
+from app.modules.evaluacion_docente.domain.exceptions import (
+    ModalidadInvalidaError,
+    ModalidadRequeridaError,
+)
+from app.modules.evaluacion_docente.domain.invariants import (
     AÑO_MAX,
     AÑO_MIN,
     require_año,
@@ -24,7 +27,10 @@ from app.domain.invariants import (
     require_modalidad_valid,
     require_periodo_orden,
 )
-from app.domain.periodo import parse_periodo
+from app.modules.evaluacion_docente.domain.periodo import parse_periodo
+from app.shared.domain.exceptions import ValidationError
+
+_AE_MOD = "app.modules.evaluacion_docente.application.services.alert_engine"
 
 # ════════════════════════════════════════════════════════════════════════
 #  require_modalidad — analytics-path enforcement
@@ -310,7 +316,7 @@ class TestAlertEngineModalidadEnforcement:
 
     async def test_valid_cuatrimestral_proceeds(self):
         db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=[])
             engine = AlertEngine(db, detectors=[])
@@ -329,7 +335,7 @@ class TestAlertTwoPeriodWindowEnforcement:
     async def test_at_most_two_periods_used(self):
         """Even if repo somehow returns 3 periods, engine only uses first 2."""
         db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             # Simulate repo returning 3 periods (shouldn't happen with LIMIT 2)
             mock_repo.find_last_two_periods = AsyncMock(
@@ -363,11 +369,11 @@ class TestAlertTwoPeriodWindowEnforcement:
                     return []
                 return [AsyncMock()]  # Would fire if anterior existed
 
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
 
-            from app.domain.alert_rules import DocenteCursoSnapshot
+            from app.modules.evaluacion_docente.domain.alert_rules import DocenteCursoSnapshot
 
             snap = DocenteCursoSnapshot(
                 evaluacion_id=uuid.UUID("00000000-0000-0000-0000-000000000001"),

@@ -1,6 +1,10 @@
 """Unit tests for the keyword-based comment classifier."""
 
-from app.application.classification import classify_comment, classify_sentimiento, classify_tema
+from app.modules.evaluacion_docente.application.classification import (
+    classify_comment,
+    classify_sentimiento,
+    classify_tema,
+)
 
 # ── classify_tema ────────────────────────────────────────────────────────
 

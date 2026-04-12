@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.application.parsing.schemas import (
+from app.modules.evaluacion_docente.application.parsing.schemas import (
     CursoGrupo,
     DimensionMetrica,
     FuentePuntaje,
@@ -20,9 +20,11 @@ from app.application.parsing.schemas import (
     PeriodoData,
     ResumenPorcentajes,
 )
-from app.application.services.duplicate_detection_service import DuplicateDetectionService
-from app.domain.entities.documento import Documento
-from app.domain.fingerprint import compute_content_fingerprint
+from app.modules.evaluacion_docente.application.services.duplicate_detection_service import (
+    DuplicateDetectionService,
+)
+from app.modules.evaluacion_docente.domain.entities.documento import Documento
+from app.modules.evaluacion_docente.domain.fingerprint import compute_content_fingerprint
 
 _UUID_NEW = uuid.UUID("00000000-0000-0000-0000-000000000001")
 _UUID_EXISTING = uuid.UUID("00000000-0000-0000-0000-000000000002")

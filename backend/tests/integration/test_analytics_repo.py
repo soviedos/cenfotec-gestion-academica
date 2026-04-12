@@ -3,7 +3,9 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.repositories.analytics_repo import AnalyticsRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.analytics_repo import (
+    AnalyticsRepository,
+)
 from tests.fixtures.factories import make_dimension, make_documento, make_evaluacion
 
 # ── Helpers ─────────────────────────────────────────────────────────────

@@ -2,7 +2,10 @@
 
 import pytest
 
-from app.application.parsing.extractors.metrics import extract_metrics, parse_puntos
+from app.modules.evaluacion_docente.application.parsing.extractors.metrics import (
+    extract_metrics,
+    parse_puntos,
+)
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 

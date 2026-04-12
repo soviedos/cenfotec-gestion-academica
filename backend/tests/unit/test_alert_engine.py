@@ -10,9 +10,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.application.services.alert_engine import AlertEngine
-from app.domain.alert_rules import AlertCandidate, DocenteCursoSnapshot
-from app.domain.entities.enums import Severidad, TipoAlerta
+from app.modules.evaluacion_docente.application.services.alert_engine import AlertEngine
+from app.modules.evaluacion_docente.domain.alert_rules import AlertCandidate, DocenteCursoSnapshot
+from app.modules.evaluacion_docente.domain.entities.enums import Severidad, TipoAlerta
+
+_AE_MOD = "app.modules.evaluacion_docente.application.services.alert_engine"
 
 _UUID1 = uuid.UUID("00000000-0000-0000-0000-000000000001")
 _UUID2 = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -165,7 +167,7 @@ class TestAlertEngineRunForModalidad:
         return AsyncMock()
 
     async def test_no_periodos_skips(self, mock_db):
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=[])
 
@@ -176,7 +178,7 @@ class TestAlertEngineRunForModalidad:
             assert result.candidates_generated == 0
 
     async def test_single_period_runs_absolute_only(self, mock_db):
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
             mock_repo.load_snapshots = AsyncMock(
@@ -194,7 +196,7 @@ class TestAlertEngineRunForModalidad:
             assert result.created_or_updated == 1
 
     async def test_two_periods_loads_both(self, mock_db):
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C1 2025", "C3 2024"])
             mock_repo.load_snapshots = AsyncMock(
@@ -216,7 +218,7 @@ class TestAlertEngineRunForModalidad:
             ]
 
     async def test_no_candidates_skips_upsert(self, mock_db):
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
             mock_repo.load_snapshots = AsyncMock(
@@ -238,7 +240,7 @@ class TestAlertEngineRunAll:
 
     async def test_aggregates_results(self):
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             # CUATRIMESTRAL has data, MENSUAL and B2B don't
             mock_repo.find_last_two_periods = AsyncMock(

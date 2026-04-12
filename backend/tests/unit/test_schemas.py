@@ -3,8 +3,8 @@
 import uuid
 from datetime import UTC, datetime
 
-from app.domain.schemas.common import ErrorResponse, HealthResponse, PaginatedItems
-from app.domain.schemas.documento import DocumentoCreate, DocumentoRead
+from app.modules.evaluacion_docente.domain.schemas.documento import DocumentoCreate, DocumentoRead
+from app.shared.domain.schemas.common import ErrorResponse, HealthResponse, PaginatedItems
 
 
 class TestDocumentoCreate:

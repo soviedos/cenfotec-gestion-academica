@@ -1,6 +1,6 @@
 """Unit tests for qualitative analysis schemas."""
 
-from app.domain.schemas.qualitative import (
+from app.modules.evaluacion_docente.domain.schemas.qualitative import (
     ComentarioAnalisisRead,
     NubePalabras,
     PalabraFrecuencia,

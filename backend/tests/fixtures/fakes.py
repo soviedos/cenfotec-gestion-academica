@@ -1,6 +1,6 @@
 """Fake implementations for testing."""
 
-from app.domain.schemas.query import GeminiCallResult
+from app.modules.evaluacion_docente.domain.schemas.query import GeminiCallResult
 
 
 class FakeFileStorage:

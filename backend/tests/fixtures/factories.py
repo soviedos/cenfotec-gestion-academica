@@ -10,12 +10,12 @@ All fields have sensible defaults so you only override what matters for each tes
 import hashlib
 import uuid
 
-from app.domain.entities.alerta import Alerta
-from app.domain.entities.comentario_analisis import ComentarioAnalisis
-from app.domain.entities.documento import Documento
-from app.domain.entities.evaluacion import Evaluacion
-from app.domain.entities.evaluacion_curso import EvaluacionCurso
-from app.domain.entities.evaluacion_dimension import EvaluacionDimension
+from app.modules.evaluacion_docente.domain.entities.alerta import Alerta
+from app.modules.evaluacion_docente.domain.entities.comentario_analisis import ComentarioAnalisis
+from app.modules.evaluacion_docente.domain.entities.documento import Documento
+from app.modules.evaluacion_docente.domain.entities.evaluacion import Evaluacion
+from app.modules.evaluacion_docente.domain.entities.evaluacion_curso import EvaluacionCurso
+from app.modules.evaluacion_docente.domain.entities.evaluacion_dimension import EvaluacionDimension
 
 
 def make_documento(**overrides) -> Documento:

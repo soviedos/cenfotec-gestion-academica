@@ -2,8 +2,12 @@
 
 import pytest
 
-from app.application.services.query_service import QueryService
-from app.domain.schemas.query import GeminiCallResult, QueryFilters, QueryRequest
+from app.modules.evaluacion_docente.application.services.query_service import QueryService
+from app.modules.evaluacion_docente.domain.schemas.query import (
+    GeminiCallResult,
+    QueryFilters,
+    QueryRequest,
+)
 
 
 class TestDetectTema:

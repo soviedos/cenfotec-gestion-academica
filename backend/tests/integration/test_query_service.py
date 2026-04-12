@@ -3,10 +3,10 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.services.query_service import QueryService
-from app.domain.entities.gemini_audit_log import GeminiAuditLog
-from app.domain.exceptions import GeminiError
-from app.domain.schemas.query import QueryFilters
+from app.modules.evaluacion_docente.application.services.query_service import QueryService
+from app.modules.evaluacion_docente.domain.entities.gemini_audit_log import GeminiAuditLog
+from app.modules.evaluacion_docente.domain.exceptions import GeminiError
+from app.modules.evaluacion_docente.domain.schemas.query import QueryFilters
 from tests.fixtures.factories import make_comentario, make_documento, make_evaluacion
 from tests.fixtures.fakes import FakeGeminiGateway
 

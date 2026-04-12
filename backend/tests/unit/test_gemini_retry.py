@@ -6,13 +6,15 @@ import pytest
 from google.genai import errors as genai_errors
 from google.genai import types
 
-from app.domain.exceptions import GeminiUnavailableError
-from app.infrastructure.external.gemini_gateway import (
+from app.modules.evaluacion_docente.domain.exceptions import GeminiUnavailableError
+from app.modules.evaluacion_docente.infrastructure.external.gemini_gateway import (
     _MAX_RETRIES,
     _RETRY_BASE_DELAY,
     _RETRY_MAX_DELAY,
     GeminiGateway,
 )
+
+_GW_MOD = "app.modules.evaluacion_docente.infrastructure.external.gemini_gateway"
 
 
 def _server_error(msg: str = "500") -> genai_errors.ServerError:
@@ -26,7 +28,7 @@ def _client_error(msg: str = "400") -> genai_errors.ClientError:
 @pytest.fixture
 def mock_client():
     """Patch genai.Client to avoid needing a real API key."""
-    with patch("app.infrastructure.external.gemini_gateway.genai.Client") as mock:
+    with patch(f"{_GW_MOD}.genai.Client") as mock:
         client_instance = MagicMock()
         mock.return_value = client_instance
         yield client_instance

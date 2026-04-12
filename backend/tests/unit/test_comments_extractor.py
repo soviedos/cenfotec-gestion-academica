@@ -1,7 +1,7 @@
 """Unit tests for comments extraction."""
 
 
-from app.application.parsing.extractors.comments import (
+from app.modules.evaluacion_docente.application.parsing.extractors.comments import (
     clean_comment,
     extract_comments,
     parse_section_header,

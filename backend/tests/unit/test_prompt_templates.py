@@ -1,6 +1,8 @@
 """Unit tests for prompt_templates module."""
 
-from app.infrastructure.external.prompt_templates import format_evidence_block
+from app.modules.evaluacion_docente.infrastructure.external.prompt_templates import (
+    format_evidence_block,
+)
 
 
 class TestFormatEvidenceBlock:

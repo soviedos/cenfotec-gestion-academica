@@ -3,7 +3,7 @@
 
 import pytest
 
-from app.infrastructure.repositories.documento import DocumentoRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.documento import DocumentoRepository
 from tests.fixtures.factories import make_documento
 
 pytestmark = pytest.mark.integration

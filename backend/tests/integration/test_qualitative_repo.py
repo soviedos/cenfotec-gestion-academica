@@ -3,7 +3,9 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.repositories.qualitative_repo import QualitativeRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.qualitative_repo import (
+    QualitativeRepository,
+)
 from tests.fixtures.factories import make_comentario, make_documento, make_evaluacion
 
 

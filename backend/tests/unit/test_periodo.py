@@ -1,4 +1,4 @@
-"""Tests for app.domain.periodo — period normalisation, validation & ordering.
+"""Tests for domain.periodo — period normalisation, validation & ordering.
 
 Covers business rules [BR-MOD-01]–[BR-MOD-05] and [BR-AN-40]–[BR-AN-42].
 """
@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.domain.entities.enums import Modalidad
-from app.domain.exceptions import ValidationError
-from app.domain.periodo import (
+from app.modules.evaluacion_docente.domain.entities.enums import Modalidad
+from app.modules.evaluacion_docente.domain.periodo import (
     PeriodoInfo,
     _periodo_str_sort_key,
     determinar_modalidad,
@@ -19,6 +18,7 @@ from app.domain.periodo import (
     sort_periodos,
     validar_periodo,
 )
+from app.shared.domain.exceptions import ValidationError
 
 # ════════════════════════════════════════════════════════════════════════
 #  normalizar_periodo

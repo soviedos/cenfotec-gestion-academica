@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.api.v1.config_routes import get_alert_thresholds
-from app.domain.alert_rules import (
+from app.modules.evaluacion_docente.api.config_routes import get_alert_thresholds
+from app.modules.evaluacion_docente.domain.alert_rules import (
     ALERT_THRESHOLD_HIGH,
     ALERT_THRESHOLD_LOW,
     ALERT_THRESHOLD_MEDIUM,

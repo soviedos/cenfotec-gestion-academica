@@ -9,15 +9,20 @@ from __future__ import annotations
 import uuid
 from unittest.mock import AsyncMock, patch
 
-from app.application.services.alert_engine import _ALERTABLE_MODALIDADES, AlertEngine
-from app.domain.alert_rules import (
+from app.modules.evaluacion_docente.application.services.alert_engine import (
+    _ALERTABLE_MODALIDADES,
+    AlertEngine,
+)
+from app.modules.evaluacion_docente.domain.alert_rules import (
     AlertCandidate,
     BajoDesempenoDetector,
     CaidaDetector,
     DocenteCursoSnapshot,
     SentimientoDetector,
 )
-from app.domain.entities.enums import Modalidad, Severidad, TipoAlerta
+from app.modules.evaluacion_docente.domain.entities.enums import Modalidad, Severidad, TipoAlerta
+
+_AE_MOD = "app.modules.evaluacion_docente.application.services.alert_engine"
 
 _UUID1 = uuid.UUID("00000000-0000-0000-0000-000000000001")
 _UUID2 = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -128,7 +133,7 @@ class TestYearBoundary:
     async def test_run_for_modalidad_year_boundary(self):
         """Engine loads C1 2025 + C3 2024 and produces comparative alerts."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C1 2025", "C3 2024"])
             repo.load_snapshots = AsyncMock(
@@ -178,7 +183,7 @@ class TestIncompletePeriods:
     async def test_single_period_no_comparative_alerts(self):
         """With one period, Caída and Sentimiento must produce zero alerts."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
             repo.load_snapshots = AsyncMock(
@@ -216,7 +221,7 @@ class TestIncompletePeriods:
     async def test_zero_periods_returns_empty_result(self):
         """No periods at all → skip entirely, zero everything."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=[])
 
@@ -251,7 +256,7 @@ class TestModalidadIsolation:
     async def test_run_all_processes_each_modalidad_independently(self):
         """run_all() calls run_for_modalidad() once per alertable modalidad."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             periodos_by_mod = {
                 "CUATRIMESTRAL": ["C1 2025"],
@@ -454,7 +459,7 @@ class TestAlertContentCompleteness:
             assert a.valor_anterior is not None  # sentimiento requires comparative value
 
     def test_patron_complete(self):
-        from app.domain.alert_rules import PatronDetector
+        from app.modules.evaluacion_docente.domain.alert_rules import PatronDetector
 
         actual = _snap(total=100, mejora_neg=60)
         alerts = PatronDetector().detect(actual, None)
@@ -619,7 +624,7 @@ class TestYearChangeStrict:
     async def test_engine_loads_cross_year_periods(self):
         """run_for_modalidad correctly pairs C1 2025 (actual) with C3 2024 (anterior)."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["C1 2025", "C3 2024"])
             repo.load_snapshots = AsyncMock(
@@ -686,7 +691,7 @@ class TestMissingPeriodsStrict:
     async def test_gap_uses_last_two_available(self):
         """If C2 2025 is missing, engine uses C3 2025 + C1 2025 (the two most recent)."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             # Simulating C3 2025 and C1 2025 exist, C2 2025 is missing
             repo.find_last_two_periods = AsyncMock(return_value=["C3 2025", "C1 2025"])
@@ -717,7 +722,7 @@ class TestMissingPeriodsStrict:
     async def test_only_one_period_no_comparative(self):
         """Single period: only absolute detectors fire, no comparative alerts."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=["M5 2025"])
             repo.load_snapshots = AsyncMock(
@@ -753,7 +758,7 @@ class TestMissingPeriodsStrict:
     async def test_zero_periods_no_alerts(self):
         """No completed evaluations → zero alerts, zero processing."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
             repo.find_last_two_periods = AsyncMock(return_value=[])
 
@@ -838,7 +843,7 @@ class TestModalidadMixingStrict:
     async def test_run_all_isolates_modalidades(self):
         """run_all processes each modalidad independently — no data leaks."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as cls:
             repo = cls.return_value
 
             snapshot_calls: list[tuple[str, list[str]]] = []

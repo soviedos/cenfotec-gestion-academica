@@ -16,9 +16,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.application.classification import classify_comment, classify_sentimiento, classify_tema
-from app.application.services.alert_engine import AlertEngine
-from app.domain.alert_rules import (
+from app.modules.evaluacion_docente.application.classification import (
+    classify_comment,
+    classify_sentimiento,
+    classify_tema,
+)
+from app.modules.evaluacion_docente.application.services.alert_engine import AlertEngine
+from app.modules.evaluacion_docente.domain.alert_rules import (
     AlertCandidate,
     BajoDesempenoDetector,
     CaidaDetector,
@@ -26,8 +30,15 @@ from app.domain.alert_rules import (
     PatronDetector,
     SentimientoDetector,
 )
-from app.domain.entities.enums import Modalidad, Severidad, TipoAlerta
-from app.domain.periodo import determinar_modalidad, parse_periodo, periodo_sort_key, sort_periodos
+from app.modules.evaluacion_docente.domain.entities.enums import Modalidad, Severidad, TipoAlerta
+from app.modules.evaluacion_docente.domain.periodo import (
+    determinar_modalidad,
+    parse_periodo,
+    periodo_sort_key,
+    sort_periodos,
+)
+
+_AE_MOD = "app.modules.evaluacion_docente.application.services.alert_engine"
 
 _UUID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 _UUID2 = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -91,13 +102,17 @@ class TestModalidadEdgeCases:
 
     def test_desconocida_excluded_from_alertable(self):
         """[BR-MOD-05] DESCONOCIDA must NOT appear in alertable list."""
-        from app.application.services.alert_engine import _ALERTABLE_MODALIDADES
+        from app.modules.evaluacion_docente.application.services.alert_engine import (
+            _ALERTABLE_MODALIDADES,
+        )
 
         assert "DESCONOCIDA" not in _ALERTABLE_MODALIDADES
         assert len(_ALERTABLE_MODALIDADES) == 3
 
     def test_all_valid_modalidades_are_alertable(self):
-        from app.application.services.alert_engine import _ALERTABLE_MODALIDADES
+        from app.modules.evaluacion_docente.application.services.alert_engine import (
+            _ALERTABLE_MODALIDADES,
+        )
 
         assert "CUATRIMESTRAL" in _ALERTABLE_MODALIDADES
         assert "MENSUAL" in _ALERTABLE_MODALIDADES
@@ -236,7 +251,7 @@ class TestAlertEngineLastTwoPeriods:
     async def test_uses_only_two_periods_from_repo(self):
         """Even if repo returns 2, engine passes both to load_snapshots."""
         mock_db = AsyncMock()
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C2 2025", "C1 2025"])
             mock_repo.load_snapshots = AsyncMock(return_value={})
@@ -260,7 +275,7 @@ class TestAlertEngineLastTwoPeriods:
                 detector_calls.append({"has_anterior": anterior is not None})
                 return []
 
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
             mock_repo.find_last_two_periods = AsyncMock(return_value=["C1 2025"])
             mock_repo.load_snapshots = AsyncMock(
@@ -390,7 +405,7 @@ class TestModalidadIsolation:
         mock_db = AsyncMock()
         called_modalidades = []
 
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
 
             async def track_find(modalidad):
@@ -413,7 +428,7 @@ class TestModalidadIsolation:
         mock_db = AsyncMock()
         load_calls = []
 
-        with patch("app.application.services.alert_engine.AlertaRepository") as mock_repo_cls:
+        with patch(f"{_AE_MOD}.AlertaRepository") as mock_repo_cls:
             mock_repo = mock_repo_cls.return_value
 
             async def track_find(modalidad):

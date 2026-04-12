@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from app.domain.alert_rules import (
+from app.modules.evaluacion_docente.domain.alert_rules import (
     ALERT_THRESHOLD_HIGH,
     ALERT_THRESHOLD_LOW,
     ALERT_THRESHOLD_MEDIUM,
@@ -19,7 +19,7 @@ from app.domain.alert_rules import (
     PatronDetector,
     SentimientoDetector,
 )
-from app.domain.entities.enums import Severidad, TipoAlerta
+from app.modules.evaluacion_docente.domain.entities.enums import Severidad, TipoAlerta
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -356,7 +356,7 @@ class TestProtocolConformance:
         }
 
     def test_detectors_satisfy_protocol(self):
-        from app.domain.alert_rules import AlertDetector
+        from app.modules.evaluacion_docente.domain.alert_rules import AlertDetector
 
         for cls in (BajoDesempenoDetector, CaidaDetector, SentimientoDetector, PatronDetector):
             assert isinstance(cls(), AlertDetector)

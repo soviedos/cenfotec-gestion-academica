@@ -1,12 +1,12 @@
 """Unit tests for domain exceptions — Gemini error hierarchy."""
 
-from app.domain.exceptions import (
-    DomainError,
+from app.modules.evaluacion_docente.domain.exceptions import (
     GeminiError,
     GeminiRateLimitError,
     GeminiTimeoutError,
     GeminiUnavailableError,
 )
+from app.shared.domain.exceptions import DomainError
 
 
 class TestGeminiExceptions:

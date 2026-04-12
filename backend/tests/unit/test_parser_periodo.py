@@ -15,9 +15,9 @@ from __future__ import annotations
 
 import pytest
 
-from app.application.parsing.errors import ParseError, ParseWarning
-from app.application.parsing.parser import _resolve_periodo
-from app.application.parsing.schemas import PeriodoData
+from app.modules.evaluacion_docente.application.parsing.errors import ParseError, ParseWarning
+from app.modules.evaluacion_docente.application.parsing.parser import _resolve_periodo
+from app.modules.evaluacion_docente.application.parsing.schemas import PeriodoData
 
 
 class TestResolvePeriodo:

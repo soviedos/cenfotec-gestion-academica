@@ -2,8 +2,11 @@
 
 import pytest
 
-from app.domain.exceptions import ModalidadInvalidaError, ModalidadRequeridaError
-from app.domain.invariants import require_modalidad
+from app.modules.evaluacion_docente.domain.exceptions import (
+    ModalidadInvalidaError,
+    ModalidadRequeridaError,
+)
+from app.modules.evaluacion_docente.domain.invariants import require_modalidad
 
 
 class TestRequireModalidad:

@@ -11,8 +11,12 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import select
 
-from app.application.parsing.errors import ParseError, ParseMetadata, ParseResult
-from app.application.parsing.schemas import (
+from app.modules.evaluacion_docente.application.parsing.errors import (
+    ParseError,
+    ParseMetadata,
+    ParseResult,
+)
+from app.modules.evaluacion_docente.application.parsing.schemas import (
     Comentario,
     CursoGrupo,
     DimensionMetrica,
@@ -23,19 +27,23 @@ from app.application.parsing.schemas import (
     ResumenPorcentajes,
     SeccionComentarios,
 )
-from app.application.services.processing_service import ProcessingService
-from app.domain.entities.comentario_analisis import ComentarioAnalisis
-from app.domain.entities.duplicado_probable import DuplicadoProbable
-from app.domain.fingerprint import compute_content_fingerprint
-from app.infrastructure.repositories.documento import DocumentoRepository
-from app.infrastructure.repositories.evaluacion import EvaluacionRepository
+from app.modules.evaluacion_docente.application.services.processing_service import ProcessingService
+from app.modules.evaluacion_docente.domain.entities.comentario_analisis import ComentarioAnalisis
+from app.modules.evaluacion_docente.domain.entities.duplicado_probable import DuplicadoProbable
+from app.modules.evaluacion_docente.domain.fingerprint import compute_content_fingerprint
+from app.modules.evaluacion_docente.infrastructure.repositories.documento import DocumentoRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.evaluacion import (
+    EvaluacionRepository,
+)
 from tests.fixtures.factories import make_documento, make_evaluacion
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-PARSER_PATH = "app.application.services.processing_service.parse_evaluacion"
+PARSER_PATH = (
+    "app.modules.evaluacion_docente.application.services.processing_service.parse_evaluacion"
+)
 
 
 def _make_successful_result() -> ParseResult:

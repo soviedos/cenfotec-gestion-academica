@@ -1,6 +1,11 @@
 """Unit tests for ParseResult, ParseError, and ParseWarning types."""
 
-from app.application.parsing.errors import ParseError, ParseMetadata, ParseResult, ParseWarning
+from app.modules.evaluacion_docente.application.parsing.errors import (
+    ParseError,
+    ParseMetadata,
+    ParseResult,
+    ParseWarning,
+)
 
 
 class TestParseError:

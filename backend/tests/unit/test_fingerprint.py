@@ -1,10 +1,10 @@
-"""Tests for app.domain.fingerprint — content fingerprint construction & comparison."""
+"""Tests for domain.fingerprint — content fingerprint construction & comparison."""
 
 from __future__ import annotations
 
 import pytest
 
-from app.application.parsing.schemas import (
+from app.modules.evaluacion_docente.application.parsing.schemas import (
     Comentario,
     CursoGrupo,
     DimensionMetrica,
@@ -15,7 +15,7 @@ from app.application.parsing.schemas import (
     ResumenPorcentajes,
     SeccionComentarios,
 )
-from app.domain.fingerprint import (
+from app.modules.evaluacion_docente.domain.fingerprint import (
     ComparisonResult,
     FingerprintResult,
     build_cursos_key,

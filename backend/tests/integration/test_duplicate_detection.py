@@ -10,7 +10,7 @@ import uuid
 
 import pytest
 
-from app.application.parsing.schemas import (
+from app.modules.evaluacion_docente.application.parsing.schemas import (
     CursoGrupo,
     DimensionMetrica,
     FuentePuntaje,
@@ -19,11 +19,17 @@ from app.application.parsing.schemas import (
     PeriodoData,
     ResumenPorcentajes,
 )
-from app.application.services.duplicate_detection_service import DuplicateDetectionService
-from app.domain.fingerprint import compute_content_fingerprint
-from app.infrastructure.repositories.documento import DocumentoRepository
-from app.infrastructure.repositories.duplicado_repo import DuplicadoRepository
-from app.infrastructure.repositories.evaluacion import EvaluacionRepository
+from app.modules.evaluacion_docente.application.services.duplicate_detection_service import (
+    DuplicateDetectionService,
+)
+from app.modules.evaluacion_docente.domain.fingerprint import compute_content_fingerprint
+from app.modules.evaluacion_docente.infrastructure.repositories.documento import DocumentoRepository
+from app.modules.evaluacion_docente.infrastructure.repositories.duplicado_repo import (
+    DuplicadoRepository,
+)
+from app.modules.evaluacion_docente.infrastructure.repositories.evaluacion import (
+    EvaluacionRepository,
+)
 from tests.fixtures.factories import make_documento, make_evaluacion
 
 pytestmark = pytest.mark.integration

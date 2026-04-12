@@ -1,7 +1,7 @@
 """Unit tests for header extraction."""
 
 
-from app.application.parsing.extractors.header import extract_header
+from app.modules.evaluacion_docente.application.parsing.extractors.header import extract_header
 
 
 class TestExtractHeader:

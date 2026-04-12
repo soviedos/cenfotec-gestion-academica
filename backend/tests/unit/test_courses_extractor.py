@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.application.parsing.extractors.courses import (
+from app.modules.evaluacion_docente.application.parsing.extractors.courses import (
     extract_courses,
     is_subtotal_row,
     parse_total_estudiantes,

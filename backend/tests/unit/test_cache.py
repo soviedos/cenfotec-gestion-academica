@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from app.core.cache import TTLCache
+from app.shared.core.cache import TTLCache
 
 pytestmark = pytest.mark.unit
 
