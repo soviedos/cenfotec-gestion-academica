@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     @property
     def is_development(self) -> bool:
-        return self.environment == "development"
+        return self.environment in ("development", "testing")
 
     @property
     def cors_origins(self) -> list[str]:
