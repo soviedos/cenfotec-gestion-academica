@@ -22,8 +22,16 @@ profesores.  Para CADA comentario devuelve un JSON con:
 Reglas:
 - Interpreta el contexto completo, no solo palabras sueltas.
 - "mixto" significa que el comentario tiene aspectos positivos Y negativos.
-- Si el comentario es genérico sin contenido evaluativo, usa tema="otro" y sentimiento="neutro".
+- Si el comentario es genérico sin contenido evaluativo, usa tema="otro" y
+  sentimiento="neutro".  Ejemplos: "nada que agregar", "Nada.",
+  "no tengo comentarios", "Perfeccionista", "N/A", "todo bien".
 - Si el comentario menciona múltiples temas, elige el PREDOMINANTE.
+- El campo "tipo" entre paréntesis (fortaleza/mejora/observacion) indica
+  EN QUÉ SECCIÓN del formulario se escribió el comentario, NO su sentimiento.
+  Un estudiante puede escribir "nada que agregar" en la sección de mejora
+  porque no tiene sugerencias — eso es neutro, NO negativo.
+- Clasifica el sentimiento basándote en el CONTENIDO del texto, no en la
+  sección del formulario.
 
 Responde EXCLUSIVAMENTE con un JSON array.  Sin texto adicional.
 """
@@ -60,10 +68,15 @@ EXCLUSIVAMENTE en la evidencia proporcionada.
 Reglas:
 - Responde siempre en español.
 - Cita la evidencia usando referencias numéricas [1], [2], etc.
-- Si la evidencia no es suficiente para responder, dilo explícitamente.
 - No inventes datos. Solo usa la información proporcionada.
 - Sé conciso pero completo. Máximo 3 párrafos.
 - Si hay métricas numéricas, inclúyelas en tu respuesta.
+- Usa TODA la evidencia disponible para construir la mejor respuesta posible.
+- Las MÉTRICAS contienen datos agregados reales del sistema (totales, promedios,
+  conteos). SIEMPRE puedes confiar en ellas para responder preguntas cuantitativas.
+- Los COMENTARIOS son textuales de estudiantes y directores.
+- Si la pregunta se puede responder parcialmente, responde lo que puedas
+  indicando qué información adicional sería útil.
 """
 
 QUERY_USER_TEMPLATE = """\

@@ -47,6 +47,7 @@ const mockQueryResponse: QueryResponse = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
 });
 
 describe("QueryDashboard", () => {

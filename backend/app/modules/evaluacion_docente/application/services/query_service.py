@@ -183,10 +183,11 @@ class QueryService:
         """Fetch summary metrics relevant to the query filters."""
         results: list[dict] = []
 
-        # Global or filtered average
+        # Global or filtered summary
         avg_stmt = select(
             func.avg(Evaluacion.puntaje_general.cast(Float)).label("promedio"),
-            func.count(Evaluacion.id).label("total"),
+            func.count(Evaluacion.id).label("total_evaluaciones"),
+            func.count(func.distinct(Evaluacion.docente_nombre)).label("total_docentes"),
         ).where(Evaluacion.estado == "completado")
         avg_stmt = avg_stmt.where(Evaluacion.modalidad == f.modalidad)
         if f.periodo:
@@ -196,6 +197,30 @@ class QueryService:
 
         row = (await self.db.execute(avg_stmt)).first()
         if row and row.promedio is not None:
+            # Total evaluations count
+            results.append(
+                {
+                    "raw": {
+                        "label": "Total de evaluaciones procesadas",
+                        "value": int(row.total_evaluaciones),
+                        "periodo": f.periodo,
+                        "docente": f.docente,
+                    },
+                }
+            )
+            # Distinct professors count
+            if not f.docente:
+                results.append(
+                    {
+                        "raw": {
+                            "label": "Total de docentes evaluados",
+                            "value": int(row.total_docentes),
+                            "periodo": f.periodo,
+                            "docente": f.docente,
+                        },
+                    }
+                )
+            # Average score
             label = "Puntaje promedio general"
             if f.docente:
                 label = f"Puntaje promedio de {f.docente}"
@@ -204,6 +229,27 @@ class QueryService:
                     "raw": {
                         "label": label,
                         "value": round(float(row.promedio), 2),
+                        "periodo": f.periodo,
+                        "docente": f.docente,
+                    },
+                }
+            )
+
+        # Distinct periods available
+        period_stmt = (
+            select(func.count(func.distinct(Evaluacion.periodo)))
+            .where(Evaluacion.estado == "completado")
+            .where(Evaluacion.modalidad == f.modalidad)
+        )
+        if f.docente:
+            period_stmt = period_stmt.where(Evaluacion.docente_nombre == f.docente)
+        period_count = (await self.db.execute(period_stmt)).scalar() or 0
+        if period_count > 0:
+            results.append(
+                {
+                    "raw": {
+                        "label": "Períodos con evaluaciones",
+                        "value": int(period_count),
                         "periodo": f.periodo,
                         "docente": f.docente,
                     },

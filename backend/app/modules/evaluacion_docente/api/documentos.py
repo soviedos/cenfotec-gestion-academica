@@ -1,3 +1,4 @@
+import urllib.parse
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
@@ -143,10 +144,15 @@ async def download_documento(
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
     pdf_bytes = await storage.download(documento.storage_path)
+    # RFC 5987: use filename* with UTF-8 encoding for non-ASCII names
+    ascii_name = documento.nombre_archivo.encode("ascii", "replace").decode()
+    utf8_name = urllib.parse.quote(documento.nombre_archivo)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{documento.nombre_archivo}"',
+            "Content-Disposition": (
+                f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"
+            ),
         },
     )

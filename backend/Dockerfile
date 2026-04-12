@@ -15,16 +15,20 @@ COPY pyproject.toml .
 FROM base AS development
 COPY . .
 RUN uv pip install --system -e ".[dev]"
+RUN chmod +x /app/entrypoint.sh
 RUN adduser --disabled-password --no-create-home --gecos '' appuser
 USER appuser
 EXPOSE 8000
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ---- Production ----
 FROM base AS production
 COPY . .
 RUN uv pip install --system -e .
+RUN chmod +x /app/entrypoint.sh
 RUN adduser --disabled-password --no-create-home --gecos '' appuser
 USER appuser
 EXPOSE 8000
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

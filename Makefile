@@ -88,6 +88,10 @@ lint-front:
 migrate:
 	cd backend && python -m alembic -c app/infrastructure/database/migrations/alembic.ini upgrade head
 
+## Ejecutar migraciones dentro del contenedor Docker
+migrate-docker:
+	docker exec eval-backend python -m alembic -c app/infrastructure/database/migrations/alembic.ini upgrade head
+
 migration:
 	@read -p "Nombre de la migración: " name; \
 	cd backend && python -m alembic -c app/infrastructure/database/migrations/alembic.ini revision --autogenerate -m "$$name"

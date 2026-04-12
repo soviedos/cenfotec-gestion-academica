@@ -221,6 +221,19 @@ _NEUTRAL_PHRASES = re.compile(
     re.IGNORECASE,
 )
 
+# Non-evaluative / empty comments — students who have nothing to say.
+# Detected BEFORE keyword counting; forces neutro regardless of tipo.
+_NON_EVALUATIVE = re.compile(
+    r"^\s*(?:"
+    r"nada\.?|na\.?|n/?a\.?|ninguno\.?|ninguna\.?|---?|\.\.?\.?|"
+    r"nada que (?:agregar|comentar|decir|añadir|mencionar|reportar|aportar)|"
+    r"no tengo (?:nada |nada que |ningún )?(?:comentario|observaci[oó]n|aporte|nada)s?(?:\b.*)?|"
+    r"sin (?:comentarios?|nada|novedad(?:es)?)|"
+    r"todo bien|todo(?:\s+está)?\s+bien|nada(?:\s+más)?\s+que\s+decir"
+    r")\s*\.?\s*$",
+    re.IGNORECASE,
+)
+
 
 def _is_negated(texto: str, match_start: int) -> bool:
     """Check if a keyword match is preceded by a negator within 3 words."""
@@ -319,11 +332,16 @@ def classify_tema(texto: str) -> tuple[str, str]:
 def classify_sentimiento(texto: str, tipo: str) -> tuple[str, float]:
     """Return (sentimiento, score) using keyword rules.
 
-    The ``tipo`` field (fortaleza/mejora/observacion) provides a strong
-    prior: fortalezas skew positive, mejoras skew negative.
+    The ``tipo`` field (fortaleza/mejora/observacion) indicates which
+    section of the evaluation form the comment came from.  It acts as
+    a weak prior that only applies when evaluative keywords are present.
 
     Score range: -1.0 (very negative) to 1.0 (very positive).
     """
+    # 0. Non-evaluative / empty comments → always neutro
+    if _NON_EVALUATIVE.match(texto):
+        return Sentimiento.NEUTRO, 0.0
+
     # 1. Mask idiomatic phrases
     masked, pos_hits = _mask_phrases(texto)
 
@@ -331,11 +349,13 @@ def classify_sentimiento(texto: str, tipo: str) -> tuple[str, float]:
     kw_pos, neg_hits = _count_hits(masked)
     pos_hits += kw_pos
 
-    # 3. Apply tipo prior
-    if tipo == "fortaleza":
-        pos_hits += 1
-    elif tipo == "mejora":
-        neg_hits += 1
+    # 3. Apply tipo prior ONLY when evaluative keywords are present.
+    #    Without keywords the tipo alone should not determine sentiment.
+    if pos_hits > 0 or neg_hits > 0:
+        if tipo == "fortaleza":
+            pos_hits += 1
+        elif tipo == "mejora":
+            neg_hits += 1
 
     # 4. Score → label
     return _score_to_label(pos_hits, neg_hits)

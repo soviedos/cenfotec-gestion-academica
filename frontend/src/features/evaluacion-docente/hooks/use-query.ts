@@ -1,8 +1,14 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { postQuery } from "@/features/evaluacion-docente/lib/api/query";
-import type { Modalidad, QueryHistoryEntry, QueryResponse } from "@/features/evaluacion-docente/types";
+import type {
+  Modalidad,
+  QueryHistoryEntry,
+  QueryResponse,
+} from "@/features/evaluacion-docente/types";
+
+const STORAGE_KEY = "query_history";
 
 interface QueryState {
   response: QueryResponse | null;
@@ -11,16 +17,39 @@ interface QueryState {
   history: QueryHistoryEntry[];
 }
 
-const INITIAL: QueryState = {
-  response: null,
-  isLoading: false,
-  error: null,
-  history: [],
-};
+function loadHistory(): QueryHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as QueryHistoryEntry[];
+    return parsed.map((e) => ({ ...e, timestamp: new Date(e.timestamp) }));
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(history: QueryHistoryEntry[]): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } catch {
+    // sessionStorage full or unavailable — ignore
+  }
+}
 
 export function useQuery(modalidad: Modalidad) {
-  const [state, setState] = useState<QueryState>(INITIAL);
+  const [state, setState] = useState<QueryState>(() => ({
+    response: null,
+    isLoading: false,
+    error: null,
+    history: loadHistory(),
+  }));
   const abortRef = useRef<AbortController | null>(null);
+
+  // Persist history on change
+  useEffect(() => {
+    saveHistory(state.history);
+  }, [state.history]);
 
   const ask = useCallback(
     async (question: string) => {

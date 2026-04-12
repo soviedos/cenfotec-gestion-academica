@@ -105,14 +105,25 @@ class TestClassifySentimiento:
         assert sent == "neutro"
         assert score == 0.0
 
-    def test_fortaleza_prior_shifts_positive(self):
-        # Plain text with no keywords, but fortaleza tipo gives +1 pos
-        sent, _ = classify_sentimiento("Asiste puntualmente", "fortaleza")
+    def test_fortaleza_prior_with_keywords(self):
+        # tipo prior only applies when evaluative keywords are present
+        sent, _ = classify_sentimiento("Buena clase", "fortaleza")
         assert sent == "positivo"
 
-    def test_mejora_prior_shifts_negative(self):
-        sent, _ = classify_sentimiento("Asiste puntualmente", "mejora")
+    def test_mejora_prior_with_keywords(self):
+        # tipo prior only applies when evaluative keywords are present
+        sent, _ = classify_sentimiento("Algo confuso a veces", "mejora")
         assert sent == "negativo"
+
+    def test_fortaleza_no_prior_without_keywords(self):
+        # Without evaluative keywords, tipo prior does NOT apply
+        sent, _ = classify_sentimiento("Asiste puntualmente", "fortaleza")
+        assert sent == "neutro"
+
+    def test_mejora_no_prior_without_keywords(self):
+        # Without evaluative keywords, tipo prior does NOT apply
+        sent, _ = classify_sentimiento("Asiste puntualmente", "mejora")
+        assert sent == "neutro"
 
     def test_observacion_no_prior(self):
         sent, _ = classify_sentimiento("Asiste puntualmente", "observacion")
@@ -295,11 +306,11 @@ class TestExplicitPhrases:
         assert result["sentimiento"] == "positivo"
 
     def test_no_aplica_with_fortaleza_prior(self):
-        """'no aplica' as fortaleza → positive from prior only."""
+        """'no aplica' is non-evaluative → always neutro regardless of tipo."""
         result = classify_comment("no aplica", "fortaleza")
-        assert result["sentimiento"] == "positivo"
+        assert result["sentimiento"] == "neutro"
         result = classify_comment("no aplica", "fortaleza")
-        assert result["sentimiento"] == "positivo"
+        assert result["sentimiento"] == "neutro"
 
 
 class TestSentimentRequired:
@@ -350,3 +361,45 @@ class TestSentimentRequired:
     def test_no_hay_problemas_pero_podria_mejorar_mixto(self):
         sent, _ = classify_sentimiento("no hay problemas pero podría mejorar", "observacion")
         assert sent == "mixto"
+
+
+class TestNonEvaluativeComments:
+    """Comments with no evaluative content should be neutro."""
+
+    def test_nada_que_agregar_mejora(self):
+        result = classify_comment("nada que agregar", "mejora")
+        assert result["sentimiento"] == "neutro"
+        assert result["sent_score"] == 0.0
+
+    def test_nada_dot_mejora(self):
+        result = classify_comment("Nada.", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_no_tengo_comentarios_mejora(self):
+        result = classify_comment("no tengo comentarios sobre ello", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_nada_que_comentar(self):
+        result = classify_comment("nada que comentar", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_nada_que_decir(self):
+        result = classify_comment("nada que decir", "fortaleza")
+        assert result["sentimiento"] == "neutro"
+
+    def test_sin_comentarios(self):
+        result = classify_comment("sin comentarios", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_na(self):
+        result = classify_comment("N/A", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_todo_bien(self):
+        result = classify_comment("todo bien", "mejora")
+        assert result["sentimiento"] == "neutro"
+
+    def test_single_word_no_keywords_mejora(self):
+        """A single non-evaluative word in mejora should NOT be negative."""
+        result = classify_comment("Perfeccionista", "mejora")
+        assert result["sentimiento"] == "neutro"
