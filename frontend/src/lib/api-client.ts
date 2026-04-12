@@ -1,3 +1,5 @@
+import { getToken } from "@/features/auth/lib/authApi";
+
 const API_BASE_URL = "";
 
 class ApiClientError extends Error {
@@ -18,6 +20,11 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestOptions = {},
@@ -28,6 +35,7 @@ async function request<T>(
     method,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...headers,
     },
     signal,
@@ -58,6 +66,7 @@ async function uploadFile<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
     body: formData,
+    headers: authHeaders(),
     signal,
   });
 

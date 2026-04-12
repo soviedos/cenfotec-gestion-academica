@@ -215,19 +215,12 @@ describe("AnalyticsDashboard", () => {
     setupMocks();
     render(<AnalyticsDashboard />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Cuatrimestral")).toBeInTheDocument();
-    });
-
-    const user = userEvent.setup();
-    // First select modalidad
-    await user.click(screen.getByText("Cuatrimestral"));
-
-    // Now period buttons should appear
+    // Default modalidad is CUATRIMESTRAL, so periods should appear right away
     await waitFor(() => {
       expect(screen.getByText("C1 2025")).toBeInTheDocument();
     });
 
+    const user = userEvent.setup();
     await user.click(screen.getByText("C1 2025"));
 
     // After clicking, fetchResumen should have been called again with periodo

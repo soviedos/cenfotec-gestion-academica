@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDashboardSummary } from "@/features/evaluacion-docente/lib/api/dashboard";
-import { fetchAlertSummary, fetchAlerts } from "@/features/evaluacion-docente/lib/api/alertas";
+import {
+  fetchAlertSummary,
+  fetchAlerts,
+} from "@/features/evaluacion-docente/lib/api/alertas";
 import type {
   AlertaResponse,
   AlertaSummary,
@@ -40,19 +43,22 @@ export function useCommandCenter() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      // Alertas require modalidad (BR-MOD-02); skip when not selected
       const [dashboard, alertSummary, alertsPage] = await Promise.all([
         fetchDashboardSummary(signal, mod),
-        fetchAlertSummary(signal, mod),
-        fetchAlerts(
-          {
-            severidad: "alta",
-            estado: "activa",
-            ...(mod ? { modalidad: mod } : {}),
-            page: 1,
-            page_size: 10,
-          },
-          signal,
-        ),
+        mod ? fetchAlertSummary(signal, mod) : Promise.resolve(null),
+        mod
+          ? fetchAlerts(
+              {
+                severidad: "alta",
+                estado: "activa",
+                modalidad: mod,
+                page: 1,
+                page_size: 10,
+              },
+              signal,
+            )
+          : Promise.resolve({ items: [], total: 0, page: 1, page_size: 10 }),
       ]);
 
       // Tendencia is already sorted chronologically by the backend [BR-AN-40]

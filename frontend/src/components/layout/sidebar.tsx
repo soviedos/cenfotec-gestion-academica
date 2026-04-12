@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { GraduationCap, PanelLeftClose, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useModuleAccess } from "@/features/auth/hooks/useModuleAccess";
 import { navigation } from "./navigation";
 
 /* -------------------------------------------------- */
@@ -19,12 +20,17 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { hasModule } = useModuleAccess();
+
+  const visibleGroups = navigation.filter(
+    (g) => g.modulo === null || hasModule(g.modulo),
+  );
 
   return (
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-30 flex flex-col border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[68px]" : "w-60",
+        collapsed ? "w-17" : "w-60",
       )}
     >
       {/* Brand */}
@@ -49,7 +55,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {navigation.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.title} className="mb-4">
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40">
@@ -80,7 +86,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     >
                       {/* Active indicator bar */}
                       {isActive && (
-                        <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-sidebar-primary" />
+                        <span className="absolute inset-y-1 left-0 w-0.75 rounded-full bg-sidebar-primary" />
                       )}
                       <item.icon
                         className={cn(

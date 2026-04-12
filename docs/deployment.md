@@ -30,8 +30,8 @@ docker --version
 docker compose version
 
 # Clonar repositorio
-git clone <repo-url> /opt/evaluaciones-docentes
-cd /opt/evaluaciones-docentes
+git clone <repo-url> /opt/cenfotec-gestion-academica
+cd /opt/cenfotec-gestion-academica
 ```
 
 ---
@@ -42,7 +42,7 @@ Crear `.env` en la raíz del proyecto. **No versionar este archivo.**
 
 ```bash
 # ── Base de datos ────────────────────────────────
-POSTGRES_DB=evaluaciones_docentes
+POSTGRES_DB=gestion_academica
 POSTGRES_USER=eval_user
 POSTGRES_PASSWORD=<contraseña-segura-generada>
 
@@ -107,7 +107,7 @@ curl -I http://localhost:3000
 
 # Verificar PostgreSQL
 docker compose -f infra/docker/docker-compose.yml exec postgres \
-  pg_isready -U eval_user -d evaluaciones_docentes
+  pg_isready -U eval_user -d gestion_academica
 ```
 
 ### 3.4 Worker de Celery (opcional)
@@ -209,18 +209,18 @@ El backend incluye middleware de seguridad automático:
 ```bash
 # Backup completo
 docker compose -f infra/docker/docker-compose.yml exec postgres \
-  pg_dump -U eval_user evaluaciones_docentes > backup_$(date +%Y%m%d).sql
+  pg_dump -U eval_user gestion_academica > backup_$(date +%Y%m%d).sql
 
 # Restaurar
 cat backup_20260404.sql | docker compose -f infra/docker/docker-compose.yml exec -T postgres \
-  psql -U eval_user -d evaluaciones_docentes
+  psql -U eval_user -d gestion_academica
 ```
 
 ### Automatizar con cron
 
 ```bash
-# /etc/cron.d/evaluaciones-backup
-0 2 * * * root docker compose -f /opt/evaluaciones-docentes/infra/docker/docker-compose.yml exec -T postgres pg_dump -U eval_user evaluaciones_docentes | gzip > /opt/backups/db_$(date +\%Y\%m\%d).sql.gz
+# /etc/cron.d/gestion-academica-backup
+0 2 * * * root docker compose -f /opt/cenfotec-gestion-academica/infra/docker/docker-compose.yml exec -T postgres pg_dump -U eval_user gestion_academica | gzip > /opt/backups/db_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### MinIO
@@ -238,7 +238,7 @@ docker run --rm -v evaluaciones_minio_data:/data -v /opt/backups:/backup alpine 
 ## 7. Actualización
 
 ```bash
-cd /opt/evaluaciones-docentes
+cd /opt/cenfotec-gestion-academica
 
 # Obtener cambios
 git pull origin main
@@ -276,7 +276,7 @@ docker compose -f infra/docker/docker-compose.yml logs --tail=100 backend
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml exec postgres \
-  psql -U eval_user -d evaluaciones_docentes \
+  psql -U eval_user -d gestion_academica \
   -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"
 ```
 

@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
-
-class BaseSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+from app.shared.domain.schemas.common import BaseSchema
 
 # ── Request ──────────────────────────────────────────────────────────────
 

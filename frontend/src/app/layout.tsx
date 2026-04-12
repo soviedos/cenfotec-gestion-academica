@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/features/auth";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={cn("font-sans", inter.variable)}>
       <body className="min-h-screen antialiased">
-        <TooltipProvider>{children}</TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </AuthProvider>
       </body>
     </html>
   );

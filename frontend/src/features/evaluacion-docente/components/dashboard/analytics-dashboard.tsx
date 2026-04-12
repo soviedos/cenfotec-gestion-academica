@@ -3,7 +3,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { BarChart3, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { useAnalytics } from "@/features/evaluacion-docente/hooks/use-analytics";
-import { fetchEscuelas, fetchCursos } from "@/features/evaluacion-docente/lib/api/analytics";
+import {
+  fetchEscuelas,
+  fetchCursos,
+} from "@/features/evaluacion-docente/lib/api/analytics";
 import { KpiCard } from "@/features/evaluacion-docente/components/dashboard/kpi-card";
 import { DocenteBarChart } from "@/features/evaluacion-docente/components/dashboard/docente-bar-chart";
 import { DimensionRadarChart } from "@/features/evaluacion-docente/components/dashboard/dimension-radar-chart";
@@ -18,7 +21,9 @@ import {
 import type { Modalidad } from "@/features/evaluacion-docente/types";
 
 export function AnalyticsDashboard() {
-  const [modalidad, setModalidad] = useState<Modalidad | undefined>();
+  const [modalidad, setModalidad] = useState<Modalidad | undefined>(
+    "CUATRIMESTRAL",
+  );
   const [periodo, setPeriodo] = useState<string | undefined>();
   const [escuela, setEscuela] = useState<string | undefined>();
   const [curso, setCurso] = useState<string | undefined>();

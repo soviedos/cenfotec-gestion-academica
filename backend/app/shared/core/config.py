@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # App
-    app_name: str = "Evaluaciones Docentes API"
+    app_name: str = "Gestión Académica API"
     app_version: str = "0.1.0"
     environment: str = "development"
     log_level: str = "info"
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = (
-        "postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/evaluaciones_docentes"
+        "postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/gestion_academica"
     )
     db_echo: bool = False
     db_pool_size: int = 5
@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     minio_secret_key: SecretStr = SecretStr("minio_pass_dev")
     minio_bucket: str = "evaluaciones"
     minio_secure: bool = False
+
+    # Auth / JWT
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_minutes: int = 480  # 8 hours
 
     # Gemini
     gemini_api_key: SecretStr = SecretStr("")

@@ -1,6 +1,6 @@
 # Arquitectura del Sistema
 
-> Documento técnico de arquitectura para la plataforma **Evaluaciones Docentes**.
+> Documento técnico de arquitectura para la plataforma **Gestión Académica**.
 > Última actualización: 2026-06-04
 
 ---

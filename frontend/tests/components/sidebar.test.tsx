@@ -8,6 +8,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/evaluacion-docente/inicio",
 }));
 
+// Mock useModuleAccess — admin sees all modules
+vi.mock("@/features/auth/hooks/useModuleAccess", () => ({
+  useModuleAccess: () => ({
+    hasModule: () => true,
+    hasPermission: () => true,
+    accessibleModules: [],
+  }),
+}));
+
 describe("Sidebar", () => {
   const defaultProps = { collapsed: false, onToggle: vi.fn() };
 

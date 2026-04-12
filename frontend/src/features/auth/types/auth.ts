@@ -6,17 +6,19 @@ export enum Role {
   CONSULTOR = "consultor",
 }
 
+export interface ModuloPermiso {
+  modulo: string;
+  permisos: string[];
+}
+
 export interface User {
   id: string;
   email: string;
   nombre: string;
-  avatarUrl: string | null;
+  avatar_url: string | null;
   role: Role;
   activo: boolean;
+  modulos: ModuloPermiso[];
 }
 
-export interface Session {
-  user: User;
-  accessToken: string;
-  expiresAt: number;
-}
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated";

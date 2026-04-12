@@ -2,18 +2,28 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from pydantic import BaseModel
+
+
+class ModuloPermiso(BaseModel):
+    """A single module with its granted permissions."""
+
+    modulo: str
+    permisos: list[str]
 
 
 class UserRead(BaseModel):
     """Public user profile returned by GET /auth/me."""
 
-    id: str
+    id: UUID
     email: str
     nombre: str
     avatar_url: str | None = None
     role: str
     activo: bool
+    modulos: list[ModuloPermiso] = []
 
     model_config = {"from_attributes": True}
 

@@ -60,6 +60,13 @@ export function useQualitative(filters: QualitativeFilters = {}) {
 
     try {
       const f = filtersRef.current;
+
+      // modalidad is required by the backend (BR-MOD-02)
+      if (!f.modalidad) {
+        setState({ ...INITIAL, isLoading: false });
+        return;
+      }
+
       const [resumen, comentarios, temas, sentimientos] = await Promise.all([
         fetchResumenCualitativo(
           {

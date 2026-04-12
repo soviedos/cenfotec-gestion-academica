@@ -41,7 +41,7 @@ Esto crea `.env`, `backend/.env` y `frontend/.env.local` a partir de los `.examp
 GEMINI_API_KEY=AIzaSy...tu-clave-real
 
 # Los demás valores por defecto funcionan para desarrollo local
-DATABASE_URL=postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/evaluaciones_docentes
+DATABASE_URL=postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/gestion_academica
 REDIS_URL=redis://localhost:6379/0
 MINIO_ENDPOINT=localhost:9000
 ```
@@ -53,9 +53,9 @@ MINIO_ENDPOINT=localhost:9000
 ```bash
 # Crear usuario y base de datos
 psql postgres -c "CREATE USER eval_user WITH PASSWORD 'eval_pass_dev';"
-psql postgres -c "CREATE DATABASE evaluaciones_docentes OWNER eval_user;"
-psql evaluaciones_docentes -c "CREATE EXTENSION IF NOT EXISTS vector;"
-psql evaluaciones_docentes -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+psql postgres -c "CREATE DATABASE gestion_academica OWNER eval_user;"
+psql gestion_academica -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql gestion_academica -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
 ```
 
 ---

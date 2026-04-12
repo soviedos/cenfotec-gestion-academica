@@ -31,4 +31,9 @@ class User(UUIDMixin, TimestampMixin, Base):
         default="consultor",
         comment="RBAC role: admin | coordinador | consultor",
     )
+    password_hash: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="bcrypt hash — NULL for Google-only users",
+    )
     activo: Mapped[bool] = mapped_column(default=True)

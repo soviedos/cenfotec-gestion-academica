@@ -1,7 +1,7 @@
 [project]
-name = "evaluaciones-docentes-backend"
+name = "cenfotec-gestion-academica-backend"
 version = "0.1.0"
-description = "Backend API para plataforma de análisis de evaluaciones docentes"
+description = "Backend API para plataforma de gestión académica"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
@@ -19,6 +19,8 @@ dependencies = [
     "httpx>=0.27.0",
     "google-genai>=1.0.0",
     "pymupdf>=1.24.0",
+    "PyJWT[crypto]>=2.8.0",
+    "bcrypt>=4.1.0",
 ]
 
 [project.optional-dependencies]

@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useModuleAccess } from "@/features/auth/hooks/useModuleAccess";
 import { navigation } from "./navigation";
 
 interface MobileSidebarProps {
@@ -19,6 +20,11 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   const pathname = usePathname();
+  const { hasModule } = useModuleAccess();
+
+  const visibleGroups = navigation.filter(
+    (g) => g.modulo === null || hasModule(g.modulo),
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -38,7 +44,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
         </SheetHeader>
 
         <nav className="px-2 py-3">
-          {navigation.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.title} className="mb-4">
               <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
                 {group.title}
@@ -63,7 +69,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                         )}
                       >
                         {isActive && (
-                          <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" />
+                          <span className="absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
                         )}
                         <item.icon
                           className={cn(

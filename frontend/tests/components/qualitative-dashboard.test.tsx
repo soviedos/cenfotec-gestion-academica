@@ -282,11 +282,14 @@ describe("QualitativeDashboard", () => {
 
     await user.click(screen.getByText("Limpiar filtros"));
 
-    // After clearing, the filter should be gone—fetches reset
+    // After clearing, the filter should be gone—fetches reset (keeps default modalidad)
     await waitFor(() => {
       const lastCall = mockedFetchComentarios.mock.calls.at(-1);
       expect(lastCall?.[0]).toEqual(
-        expect.objectContaining({ tipo: undefined }),
+        expect.objectContaining({
+          tipo: undefined,
+          modalidad: "CUATRIMESTRAL",
+        }),
       );
     });
   });

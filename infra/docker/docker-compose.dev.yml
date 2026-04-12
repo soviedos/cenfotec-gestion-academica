@@ -45,6 +45,7 @@ services:
     environment:
       ENVIRONMENT: development
       WATCHPACK_POLLING: "true"
+      BACKEND_URL: http://backend:8000
 
 volumes:
   frontend_node_modules:

@@ -67,8 +67,8 @@ El primer módulo implementado — **Evaluación Docente** — recibe evaluacion
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/soviedos/Evaluaciones_Docentes.git
-cd Evaluaciones_Docentes
+git clone https://github.com/soviedos/cenfotec-gestion-academica.git
+cd cenfotec-gestion-academica
 
 # 2. Configurar variables de entorno
 make setup

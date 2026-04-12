@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.modules.auth.api import routes as auth_routes
 from app.modules.evaluacion_docente.api import (
     alertas,
     analytics,
@@ -13,6 +14,10 @@ from app.modules.evaluacion_docente.api import (
 
 api_router = APIRouter()
 
+# Auth
+api_router.include_router(auth_routes.router, prefix="/auth", tags=["auth"])
+
+# Evaluación docente
 api_router.include_router(evaluaciones.router, prefix="/evaluaciones", tags=["evaluaciones"])
 api_router.include_router(documentos.router, prefix="/documentos", tags=["documentos"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])

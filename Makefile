@@ -1,6 +1,6 @@
 .PHONY: dev dev-worker down down-clean infra infra-down build test test-back test-front test-e2e lint lint-back lint-front migrate migration logs clean ps setup
 
-COMPOSE_BASE  = docker compose -f infra/docker/docker-compose.yml
+COMPOSE_BASE  = docker compose --env-file .env -f infra/docker/docker-compose.yml
 COMPOSE_DEV   = $(COMPOSE_BASE) -f infra/docker/docker-compose.dev.yml
 
 # ============================

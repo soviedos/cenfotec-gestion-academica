@@ -113,4 +113,3 @@ def require_periodo_orden(periodo_orden: int, modalidad: str) -> int:
                 f"para modalidad '{modalidad}'"
             )
     return periodo_orden
-    return periodo_orden

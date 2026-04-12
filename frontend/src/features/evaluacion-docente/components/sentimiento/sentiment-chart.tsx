@@ -17,7 +17,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { SentimientoDistribucion } from "@/features/evaluacion-docente/types";
-import { sentimientoColor, sentimientoLabel } from "@/features/evaluacion-docente/lib/business-rules";
+import {
+  sentimientoColor,
+  sentimientoLabel,
+} from "@/features/evaluacion-docente/lib/business-rules";
 
 interface SentimentChartProps {
   data: SentimientoDistribucion[];
@@ -34,7 +37,7 @@ export function SentimentChart({ data }: SentimentChartProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[300px] items-center justify-center">
+          <div className="flex h-75 items-center justify-center">
             <p className="text-sm text-muted-foreground">
               No hay datos de sentimiento disponibles.
             </p>

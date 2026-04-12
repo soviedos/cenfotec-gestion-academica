@@ -1,8 +1,8 @@
 """Domain exceptions — shared kernel.
 
 Only truly cross-cutting errors live here.  Module-specific errors
-(e.g. Gemini, Modalidad) are defined in their respective modules
-and re-exported here for backward compatibility.
+(e.g. Gemini, Modalidad) are defined in their respective modules:
+    app.modules.evaluacion_docente.domain.exceptions
 """
 
 from __future__ import annotations
@@ -36,21 +36,3 @@ class ValidationError(DomainError):
 
     def __init__(self, detail: str = "Error de validación"):
         super().__init__(detail)
-
-
-# ── Lazy re-exports for backward compatibility ───────────────────────
-# Canonical location: app.modules.evaluacion_docente.domain.exceptions
-def __getattr__(name: str):  # noqa: N807
-    _module_exceptions = {
-        "ModalidadRequeridaError",
-        "ModalidadInvalidaError",
-        "GeminiError",
-        "GeminiTimeoutError",
-        "GeminiRateLimitError",
-        "GeminiUnavailableError",
-    }
-    if name in _module_exceptions:
-        from app.modules.evaluacion_docente.domain import exceptions as _mod
-
-        return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

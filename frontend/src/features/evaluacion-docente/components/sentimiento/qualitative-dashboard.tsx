@@ -18,7 +18,9 @@ import {
 } from "@/features/evaluacion-docente/components/sentimiento/qualitative-states";
 
 export function QualitativeDashboard() {
-  const [filters, setFilters] = useState<QualitativeFilters>({});
+  const [filters, setFilters] = useState<QualitativeFilters>({
+    modalidad: "CUATRIMESTRAL",
+  });
   const [filterOptions, setFilterOptions] = useState<FiltrosCualitativos>({
     periodos: [],
     docentes: [],
@@ -55,7 +57,10 @@ export function QualitativeDashboard() {
     [],
   );
 
-  const clearFilters = useCallback(() => setFilters({}), []);
+  const clearFilters = useCallback(
+    () => setFilters({ modalidad: "CUATRIMESTRAL" }),
+    [],
+  );
 
   if (isLoading && !resumen) {
     return <QualitativeSkeleton />;

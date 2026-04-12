@@ -37,7 +37,10 @@ vi.mock("@/features/evaluacion-docente/lib/api/alertas", () => ({
 }));
 
 import { fetchDashboardSummary } from "@/features/evaluacion-docente/lib/api/dashboard";
-import { fetchAlertSummary, fetchAlerts } from "@/features/evaluacion-docente/lib/api/alertas";
+import {
+  fetchAlertSummary,
+  fetchAlerts,
+} from "@/features/evaluacion-docente/lib/api/alertas";
 
 const mockedFetchDashboard = vi.mocked(fetchDashboardSummary);
 const mockedFetchAlertSummary = vi.mocked(fetchAlertSummary);
@@ -258,7 +261,16 @@ describe("CommandCenter", () => {
 
   it("renders real alert count from alert summary", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    // Select a modalidad to trigger alert fetch
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       // Alert summary total_activas = 7, overrides kpis.alertas_criticas = 3
@@ -268,7 +280,15 @@ describe("CommandCenter", () => {
 
   it("renders alert summary with severity breakdown", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(screen.getByText("Resumen de alertas")).toBeInTheDocument();
@@ -280,7 +300,15 @@ describe("CommandCenter", () => {
 
   it("renders critical alerts panel with real alert data", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(screen.getByText("Alertas críticas (2)")).toBeInTheDocument();
@@ -294,7 +322,15 @@ describe("CommandCenter", () => {
 
   it("shows alert tipo labels correctly", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(screen.getByText("Bajo desempeño")).toBeInTheDocument();
@@ -304,7 +340,15 @@ describe("CommandCenter", () => {
 
   it("shows valor_anterior when present", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(screen.getByText("ant: 78.5%")).toBeInTheDocument();
@@ -359,7 +403,15 @@ describe("CommandCenter", () => {
 
   it("renders bottom docentes", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(
@@ -446,7 +498,15 @@ describe("CommandCenter", () => {
 
   it("renders tipo distribution badges in alert summary", async () => {
     setupMocks();
+    const user = userEvent.setup();
     render(<CommandCenter />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
       expect(screen.getByText(/Bajo desempeño: 4/)).toBeInTheDocument();

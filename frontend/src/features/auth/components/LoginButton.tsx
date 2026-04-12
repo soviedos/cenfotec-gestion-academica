@@ -2,17 +2,24 @@
 
 /**
  * Google login button — initiates OAuth 2.0 flow.
+ *
+ * The actual OAuth redirect will be wired once the backend Google
+ * callback is implemented. For now, the button is rendered but
+ * disabled visually until the flow exists.
  */
 
-import { useAuth } from "../hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export function LoginButton() {
-  const { login } = useAuth();
-
   return (
-    <button
-      onClick={login}
-      className="flex items-center gap-3 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+    <Button
+      variant="outline"
+      size="lg"
+      disabled
+      className="relative h-11 w-full gap-3 text-sm font-medium"
+      onClick={() => {
+        // Future: redirect to /api/v1/auth/google/login
+      }}
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -33,6 +40,9 @@ export function LoginButton() {
         />
       </svg>
       Iniciar sesión con Google
-    </button>
+      <span className="absolute -top-2.5 right-3 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        Próximamente
+      </span>
+    </Button>
   );
 }

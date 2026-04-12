@@ -5,7 +5,7 @@ from celery import Celery
 from app.shared.core.config import settings
 
 celery_app = Celery(
-    "evaluaciones_docentes",
+    "gestion_academica",
     broker=settings.redis_url,
     backend=settings.redis_url,
 )
