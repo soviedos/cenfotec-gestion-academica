@@ -6,7 +6,8 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import all entities so Alembic detects them
-import app.shared.domain.entities  # noqa: F401
+import app.modules.auth.domain.entities  # noqa: F401
+import app.modules.evaluacion_docente.domain.entities  # noqa: F401
 from app.shared.core.config import settings
 from app.shared.domain.entities.base import Base
 

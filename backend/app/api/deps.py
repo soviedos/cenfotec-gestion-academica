@@ -43,5 +43,3 @@ def get_gemini_gateway() -> GeminiGateway:
 
 
 GeminiDep = Annotated[GeminiGateway, Depends(get_gemini_gateway)]
-
-GeminiDep = Annotated[GeminiGateway, Depends(get_gemini_gateway)]
