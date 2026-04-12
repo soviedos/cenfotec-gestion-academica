@@ -54,8 +54,20 @@ const MOCK_DASHBOARD: DashboardSummary = {
   },
   alertas: [],
   tendencia: [
-    { periodo: "C1 2025", promedio: 80, evaluaciones_count: 10 },
-    { periodo: "C2 2025", promedio: 85, evaluaciones_count: 15 },
+    {
+      periodo: "C1 2025",
+      promedio: 80,
+      evaluaciones_count: 10,
+      año: 2025,
+      periodo_orden: 1,
+    },
+    {
+      periodo: "C2 2025",
+      promedio: 85,
+      evaluaciones_count: 15,
+      año: 2025,
+      periodo_orden: 2,
+    },
   ],
   top_docentes: [
     {

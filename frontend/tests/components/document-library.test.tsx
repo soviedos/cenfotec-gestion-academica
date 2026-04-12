@@ -27,6 +27,8 @@ function makeResponse(
     storage_path: `docs/${i}.pdf`,
     tamano_bytes: 1024,
     error_detalle: null,
+    content_fingerprint: null,
+    posible_duplicado: false,
     created_at: "2025-06-15T10:30:00Z",
     updated_at: "2025-06-15T10:30:00Z",
     ...item,

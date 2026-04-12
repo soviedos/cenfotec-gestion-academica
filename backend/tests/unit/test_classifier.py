@@ -1,8 +1,6 @@
 """Unit tests for the keyword-based comment classifier."""
 
-from app.application.classification import (classify_comment,
-                                            classify_sentimiento,
-                                            classify_tema)
+from app.application.classification import classify_comment, classify_sentimiento, classify_tema
 
 # ── classify_tema ────────────────────────────────────────────────────────
 
@@ -346,7 +344,5 @@ class TestSentimentRequired:
     # ── Mixto ────────────────────────────────────────────────
 
     def test_no_hay_problemas_pero_podria_mejorar_mixto(self):
-        sent, _ = classify_sentimiento(
-            "no hay problemas pero podría mejorar", "observacion"
-        )
+        sent, _ = classify_sentimiento("no hay problemas pero podría mejorar", "observacion")
         assert sent == "mixto"

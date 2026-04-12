@@ -69,7 +69,9 @@ def build_cursos_key(cursos: list[dict[str, str]]) -> str:
 def build_dimensiones_key(dimensiones: list[dict[str, str | float]]) -> str:
     """Build a canonical sorted string from dimension nombre:pct pairs.
 
-    >>> build_dimensiones_key([{"nombre": "Metodología", "pct": 85.50}, {"nombre": "Dominio", "pct": 90.00}])
+    >>> build_dimensiones_key(
+    ...     [{"nombre": "Metodología", "pct": 85.50}, {"nombre": "Dominio", "pct": 90.00}]
+    ... )
     'dominio:90.00;metodologia:85.50'
     """
     pairs = sorted(f"{normalize_name(str(d['nombre']))}:{float(d['pct']):.2f}" for d in dimensiones)

@@ -862,7 +862,7 @@ class TestModalidadMixingStrict:
             repo.upsert_batch = AsyncMock(return_value=1)
 
             engine = AlertEngine(mock_db, detectors=[_StubDetector()])
-            result = await engine.run_all()
+            await engine.run_all()
 
             # Verify each load_snapshots call was scoped to its modalidad
             assert len(snapshot_calls) == 2

@@ -1,18 +1,17 @@
 import uuid
 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from fastapi.responses import Response
+
 from app.api.deps import DbSession, FileStorageDep, get_gemini_gateway
 from app.application.services.document_service import DocumentService
 from app.application.services.processing_service import ProcessingService
 from app.domain.exceptions import GeminiUnavailableError
-from app.domain.schemas import (DocumentoFilterParams, DocumentoList,
-                                DocumentoUploadResponse)
+from app.domain.schemas import DocumentoFilterParams, DocumentoList, DocumentoUploadResponse
 from app.domain.schemas.documento import DuplicadoDocumentoRef, DuplicadoRead
 from app.infrastructure.external.gemini_gateway import GeminiGateway
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.repositories.duplicado_repo import DuplicadoRepository
-from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException,
-                     UploadFile)
-from fastapi.responses import Response
 
 router = APIRouter()
 

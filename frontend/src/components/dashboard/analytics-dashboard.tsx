@@ -66,6 +66,8 @@ export function AnalyticsDashboard() {
       evolucion.map((e) => ({
         periodo: e.periodo,
         modalidad: e.modalidad ?? "",
+        año: e.año,
+        periodo_orden: e.periodo_orden,
       })),
     [evolucion],
   );

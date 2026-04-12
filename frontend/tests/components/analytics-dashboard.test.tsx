@@ -64,12 +64,16 @@ const mockEvolucion: PeriodoMetrica[] = [
     promedio: 85,
     evaluaciones_count: 5,
     modalidad: "CUATRIMESTRAL",
+    año: 2025,
+    periodo_orden: 1,
   },
   {
     periodo: "C2 2025",
     promedio: 90,
     evaluaciones_count: 5,
     modalidad: "CUATRIMESTRAL",
+    año: 2025,
+    periodo_orden: 2,
   },
 ];
 

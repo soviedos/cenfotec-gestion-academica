@@ -489,7 +489,7 @@ class TestAlertLastTwoPeriodsWindow:
             repo.upsert_batch = AsyncMock(return_value=2)
 
             engine = AlertEngine(mock_db, detectors=[CaidaDetector()])
-            result = await engine.run_for_modalidad("CUATRIMESTRAL")
+            await engine.run_for_modalidad("CUATRIMESTRAL")
 
             # Caída compares C3 2025 (50) vs C2 2025 (90) = 40pt drop
             candidates = repo.upsert_batch.call_args[0][0]

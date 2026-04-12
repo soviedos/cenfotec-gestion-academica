@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.parsing.schemas import ParsedEvaluacion
 from app.domain.entities.documento import Documento
-from app.domain.fingerprint import FingerprintResult, compute_content_fingerprint
+from app.domain.fingerprint import compute_content_fingerprint
 from app.infrastructure.repositories.duplicado_repo import DuplicadoRepository
 
 logger = logging.getLogger(__name__)
@@ -125,12 +125,6 @@ class DuplicateDetectionService:
             # The candidate's criterios are not stored on the Documento
             # itself — we use the fingerprint for exact match and rely
             # on the new document's criterios for evidence.
-            candidate_fp = FingerprintResult(
-                fingerprint=candidate.content_fingerprint,
-                canonical="",  # not available from stored data
-                criterios={},  # will cause field-by-field to skip
-            )
-
             # Fast path: exact fingerprint match
             if fp_result.fingerprint == candidate.content_fingerprint:
                 if await self.dup_repo.exists_pair(documento.id, candidate.id):
