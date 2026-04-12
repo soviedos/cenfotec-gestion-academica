@@ -16,6 +16,7 @@ Backend selection:
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 
 import pytest
@@ -34,8 +35,14 @@ from tests.fixtures.fakes import FakeFileStorage, FakeGeminiGateway
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Docker detection
+# Backend selection (in order of priority):
+#   1. DATABASE_URL env var pointing to PostgreSQL  → use directly (CI / Docker)
+#   2. Docker daemon reachable                      → testcontainers
+#   3. Neither                                      → in-memory SQLite
 # ---------------------------------------------------------------------------
+
+_EXTERNAL_DB_URL = os.environ.get("DATABASE_URL", "")
+_USE_EXTERNAL_PG = "postgresql" in _EXTERNAL_DB_URL
 
 
 def _docker_available() -> bool:
@@ -51,7 +58,7 @@ def _docker_available() -> bool:
         return False
 
 
-_USE_POSTGRES = _docker_available()
+_USE_POSTGRES = _USE_EXTERNAL_PG or _docker_available()
 
 # ---------------------------------------------------------------------------
 # SQLite compatibility: compile PostgreSQL JSONB as JSON on SQLite
@@ -75,6 +82,11 @@ _PG_IMAGE = "pgvector/pgvector:pg16"
 @pytest.fixture(scope="session")
 def postgres_container():
     """Start a disposable PostgreSQL container, or yield None for SQLite."""
+    if _USE_EXTERNAL_PG:
+        logger.info("Using external PostgreSQL from DATABASE_URL")
+        yield None
+        return
+
     if not _USE_POSTGRES:
         logger.info("Docker unavailable — using in-memory SQLite fallback")
         yield None
@@ -93,7 +105,10 @@ def postgres_container():
 
 @pytest.fixture(scope="session")
 def engine(postgres_container):
-    """Create an async engine: PostgreSQL if Docker available, else SQLite."""
+    """Create an async engine: external PG → testcontainers PG → SQLite."""
+    if _USE_EXTERNAL_PG:
+        return create_async_engine(_EXTERNAL_DB_URL, echo=False, poolclass=NullPool)
+
     if postgres_container is not None:
         from sqlalchemy.engine import make_url
 

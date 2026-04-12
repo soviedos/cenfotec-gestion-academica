@@ -66,6 +66,12 @@ test-back:
 test-front:
 	cd frontend && npm test
 
+## Ejecutar tests del backend en Docker con PostgreSQL (idéntico a CI)
+test-ci:
+	docker compose -f infra/docker/docker-compose.ci.yml -p ci-test \
+		up --build --abort-on-container-exit --exit-code-from backend
+	docker compose -f infra/docker/docker-compose.ci.yml -p ci-test down -v --remove-orphans
+
 test-e2e:
 	cd frontend && npm run test:e2e
 

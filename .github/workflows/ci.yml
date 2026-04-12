@@ -11,80 +11,57 @@ concurrency:
   cancel-in-progress: true
 
 # ──────────────────────────────────────────────
-# Backend: Python 3.12 — ruff lint + pytest
+# Backend: ruff lint + pytest (Docker + PostgreSQL)
 # ──────────────────────────────────────────────
 jobs:
   backend:
     name: Backend · lint + test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Lint (ruff)
+        run: >
+          docker run --rm
+          -v "$PWD/backend:/app" -w /app
+          ghcr.io/astral-sh/ruff:latest check .
 
-      - name: Install uv
-        run: pip install uv
+      - name: Test (Docker + PostgreSQL)
+        run: |
+          docker compose -f infra/docker/docker-compose.ci.yml -p ci-test \
+            up --build --abort-on-container-exit --exit-code-from backend
 
-      - name: Install dependencies
-        run: uv pip install --system -e ".[dev]"
-
-      - name: Lint
-        run: ruff check .
-
-      - name: Test
-        run: pytest tests/ -v --tb=short
-        env:
-          ENVIRONMENT: testing
-          PYTHONPATH: .
-          DATABASE_URL: "sqlite+aiosqlite://"
-          MINIO_ENDPOINT: "localhost:9000"
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f infra/docker/docker-compose.ci.yml -p ci-test \
+            down -v --remove-orphans
 
   # ──────────────────────────────────────────────
-  # Frontend: Node 22 — eslint + type-check + test + build
+  # Frontend: eslint + type-check + test + build
   # ──────────────────────────────────────────────
   frontend:
     name: Frontend · lint + test + build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+      - name: Build image
+        run: docker build -t ci-frontend --target development frontend/
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        run: npm run build
+      - name: Lint + type-check + test + build
+        run: >
+          docker run --rm ci-frontend
+          sh -c "npm run lint && npx tsc --noEmit && npm test && npm run build"
 
   # ──────────────────────────────────────────────
   # Repo: validate structure + compose syntax
   # ──────────────────────────────────────────────
   repo:
     name: Repo · validate
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 

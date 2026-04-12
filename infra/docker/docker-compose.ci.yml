@@ -1,0 +1,51 @@
+# CI — backend tests with real PostgreSQL inside Docker.
+#
+# Usage (standalone — no .env needed):
+#   docker compose -f infra/docker/docker-compose.ci.yml -p ci \
+#     up --build --abort-on-container-exit --exit-code-from backend
+
+services:
+  # ── Infrastructure (mirrors production) ──────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend test runner ──────────────────────────────────────
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+      target: development
+    entrypoint: []
+    command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
+    volumes:
+      - ../../backend/tests:/app/tests:ro
+    environment:
+      ENVIRONMENT: testing
+      DATABASE_URL: postgresql+asyncpg://test_user:test_pass@postgres:5432/test_db
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: test
+      MINIO_SECRET_KEY: test
+      SECRET_KEY: ci-test-secret-key-change-in-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
