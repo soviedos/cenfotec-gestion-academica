@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.domain.entities.enums import Modalidad
+from app.domain.invariants import AÑO_MAX, AÑO_MIN
 
 # ── Header ──────────────────────────────────────────────────────────────
 
@@ -104,10 +107,8 @@ class PeriodoData(BaseModel):
     periodo_normalizado: str = Field(
         ..., description="Valor normalizado (UPPER, sin espacios extra)"
     )
-    modalidad: Literal["CUATRIMESTRAL", "MENSUAL", "B2B", "DESCONOCIDA"] = Field(
-        ..., description="Modalidad inferida"
-    )
-    año: int = Field(..., ge=2000, le=2100, description="Año académico")
+    modalidad: Modalidad = Field(..., description="Modalidad inferida")
+    año: int = Field(..., ge=AÑO_MIN, le=AÑO_MAX, description="Año académico")
     periodo_orden: int = Field(..., ge=0, description="Orden cronológico dentro del año")
     prefijo: str = Field(..., description="Prefijo del periodo (C, M, MT, B2B)")
     numero: int = Field(..., ge=0, description="Número de periodo dentro del prefijo")
@@ -116,6 +117,26 @@ class PeriodoData(BaseModel):
     @classmethod
     def _coerce_modalidad(cls, v: str) -> str:
         return v.upper() if isinstance(v, str) else v
+
+    @model_validator(mode="after")
+    def _validate_periodo_orden_range(self) -> PeriodoData:
+        """Enforce periodo_orden is within the legal range for this modalidad."""
+        rangos: dict[str, tuple[int, int]] = {
+            "CUATRIMESTRAL": (1, 3),
+            "MENSUAL": (1, 10),
+            "B2B": (0, 0),
+        }
+        rango = rangos.get(
+            self.modalidad.value if isinstance(self.modalidad, Modalidad) else self.modalidad
+        )
+        if rango is not None:
+            rango_min, rango_max = rango
+            if not (rango_min <= self.periodo_orden <= rango_max):
+                raise ValueError(
+                    f"periodo_orden {self.periodo_orden} fuera de rango "
+                    f"[{rango_min}-{rango_max}] para modalidad '{self.modalidad}'"
+                )
+        return self
 
 
 # ── Top-level parsed result ─────────────────────────────────────────────

@@ -30,6 +30,9 @@ export interface ModalidadOption {
   description: string;
 }
 
+/** Default modalidad for UI selectors [BR-MOD-01]. */
+export const DEFAULT_MODALIDAD: Modalidad = "CUATRIMESTRAL";
+
 /** Ordered list of selectable modalidades [BR-FE-02]. */
 export const MODALIDADES: readonly ModalidadOption[] = [
   {
@@ -238,6 +241,12 @@ export function temaLabel(t: string): string {
 // ════════════════════════════════════════════════════════════════════════
 //  Tipo de comentario [BR-CLAS-01]
 // ════════════════════════════════════════════════════════════════════════
+
+export const TIPOS_COMENTARIO: readonly TipoComentario[] = [
+  "fortaleza",
+  "mejora",
+  "observacion",
+];
 
 const TIPO_COMENTARIO_LABELS: Record<TipoComentario, string> = {
   fortaleza: "Fortaleza",

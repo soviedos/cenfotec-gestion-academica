@@ -120,6 +120,8 @@ export interface DimensionPromedio {
 export interface PeriodoMetrica {
   periodo: string;
   modalidad?: string;
+  año: number;
+  periodo_orden: number;
   promedio: number;
   evaluaciones_count: number;
 }
@@ -127,6 +129,8 @@ export interface PeriodoMetrica {
 export interface PeriodoOption {
   periodo: string;
   modalidad: string;
+  año: number;
+  periodo_orden: number;
 }
 
 export interface RankingDocente {

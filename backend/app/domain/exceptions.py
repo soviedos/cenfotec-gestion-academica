@@ -52,12 +52,12 @@ class ModalidadInvalidaError(ValidationError):
     DESCONOCIDA is stored but excluded from analytics per [BR-MOD-05].
     """
 
-    _VALID = ("CUATRIMESTRAL", "MENSUAL", "B2B")
-
     def __init__(self, valor: str) -> None:
+        from app.domain.invariants import MODALIDADES_ANALISIS
+
         super().__init__(
             f"Modalidad inválida: '{valor}'. "
-            f"Valores permitidos: {', '.join(self._VALID)} [BR-MOD-01]"
+            f"Valores permitidos: {', '.join(sorted(MODALIDADES_ANALISIS))} [BR-MOD-01]"
         )
 
 

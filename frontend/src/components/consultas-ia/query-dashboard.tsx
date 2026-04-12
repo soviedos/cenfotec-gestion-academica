@@ -17,15 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery } from "@/hooks/use-query";
-import { MODALIDADES } from "@/lib/business-rules";
+import { DEFAULT_MODALIDAD, MODALIDADES } from "@/lib/business-rules";
 import type { Modalidad } from "@/types";
 import { QueryInput } from "./query-input";
 import { QueryResponseCard } from "./query-response";
 import { QueryEvidenceList } from "./query-evidence";
 import { QueryHistory } from "./query-history";
 import { QuerySkeleton, QueryError } from "./query-states";
-
-const DEFAULT_MODALIDAD: Modalidad = "CUATRIMESTRAL";
 
 export function QueryDashboard() {
   const [modalidad, setModalidad] = useState<Modalidad>(DEFAULT_MODALIDAD);

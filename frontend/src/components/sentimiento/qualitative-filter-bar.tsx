@@ -22,6 +22,7 @@ import {
   temaLabel,
   SENTIMIENTOS,
   sentimientoLabel,
+  TIPOS_COMENTARIO,
   tipoComentarioLabel,
 } from "@/lib/business-rules";
 import type { Sentimiento, Tema, TipoComentario } from "@/types";
@@ -48,7 +49,7 @@ interface QualitativeFilterBarProps {
   onClear: () => void;
 }
 
-const TIPOS = (["fortaleza", "mejora", "observacion"] as const).map((t) => ({
+const TIPOS = TIPOS_COMENTARIO.map((t) => ({
   value: t,
   label: tipoComentarioLabel(t),
 }));

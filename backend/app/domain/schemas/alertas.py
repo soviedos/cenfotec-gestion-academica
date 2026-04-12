@@ -8,13 +8,11 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.domain.entities.enums import AlertaEstado, Severidad, TipoAlerta
 from app.domain.schemas.common import BaseSchema, PaginatedItems
 
-# Constrained types aligned with backend enums & DB CHECK constraints
+# AlertaModalidad is a deliberate subset — excludes DESCONOCIDA [BR-MOD-05]
 AlertaModalidad = Literal["CUATRIMESTRAL", "MENSUAL", "B2B"]
-AlertaTipo = Literal["BAJO_DESEMPEÑO", "CAIDA", "SENTIMIENTO", "PATRON"]
-AlertaSeveridad = Literal["alta", "media", "baja"]
-AlertaEstadoType = Literal["activa", "revisada", "resuelta", "descartada"]
 
 
 class AlertaResponse(BaseSchema):
@@ -26,13 +24,13 @@ class AlertaResponse(BaseSchema):
     curso: str
     periodo: str
     modalidad: AlertaModalidad
-    tipo_alerta: AlertaTipo
+    tipo_alerta: TipoAlerta
     metrica_afectada: str
     valor_actual: float
     valor_anterior: float | None = None
     descripcion: str
-    severidad: AlertaSeveridad
-    estado: AlertaEstadoType
+    severidad: Severidad
+    estado: AlertaEstado
     created_at: datetime
     updated_at: datetime
 

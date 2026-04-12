@@ -28,17 +28,13 @@ from app.domain.alert_rules import (
     AlertDetector,
     DocenteCursoSnapshot,
 )
-from app.domain.entities.enums import Modalidad
+from app.domain.invariants import MODALIDADES_ANALISIS, require_modalidad
 from app.infrastructure.repositories.alerta_repo import AlertaRepository
 
 logger = logging.getLogger(__name__)
 
-# Modalidades that can generate alerts (DESCONOCIDA is excluded)
-_ALERTABLE_MODALIDADES: list[str] = [
-    Modalidad.CUATRIMESTRAL.value,
-    Modalidad.MENSUAL.value,
-    Modalidad.B2B.value,
-]
+# Modalidades that can generate alerts (DESCONOCIDA is excluded) [BR-MOD-05]
+_ALERTABLE_MODALIDADES: list[str] = sorted(MODALIDADES_ANALISIS)
 
 
 @dataclass
@@ -84,7 +80,12 @@ class AlertEngine:
         return result
 
     async def run_for_modalidad(self, modalidad: str) -> AlertRunResult:
-        """Run detection for a single modalidad."""
+        """Run detection for a single modalidad.
+
+        Raises ``ModalidadInvalidaError`` if the modalidad is not
+        analysis-eligible [BR-MOD-05].
+        """
+        modalidad = require_modalidad(modalidad)
         result = AlertRunResult()
 
         periodos = await self._repo.find_last_two_periods(modalidad)
@@ -109,8 +110,8 @@ class AlertEngine:
         snap_actual = snapshots.get(periodo_actual, {})
         snap_anterior = snapshots.get(periodo_anterior, {}) if periodo_anterior else {}
 
-        # Run detectors
-        candidates = self._detect(snap_actual, snap_anterior)
+        # Run detectors — scoped to this modalidad [BR-MOD-02]
+        candidates = self._detect(snap_actual, snap_anterior, expected_modalidad=modalidad)
         result.candidates_generated = len(candidates)
 
         if candidates:
@@ -131,11 +132,16 @@ class AlertEngine:
         self,
         snap_actual: dict[tuple[str, str], DocenteCursoSnapshot],
         snap_anterior: dict[tuple[str, str], DocenteCursoSnapshot],
+        *,
+        expected_modalidad: str | None = None,
     ) -> list[AlertCandidate]:
         """Run all detectors for each docente+curso in the current period.
 
         Deduplicates candidates by their natural key
         ``(docente, curso, periodo, tipo_alerta, modalidad)`` [AL-10][AL-40].
+
+        When *expected_modalidad* is set, any candidate carrying a
+        different modalidad is silently filtered out [BR-MOD-02].
         """
         candidates: list[AlertCandidate] = []
         seen: set[tuple[str, str, str, str, str]] = set()
@@ -144,6 +150,16 @@ class AlertEngine:
             anterior = snap_anterior.get(key)
             for detector in self._detectors:
                 for candidate in detector.detect(actual, anterior):
+                    # Cross-modalidad guard [BR-MOD-02]
+                    if expected_modalidad is not None and candidate.modalidad != expected_modalidad:
+                        logger.warning(
+                            "cross_modalidad_candidate | expected=%s got=%s docente=%s — filtered",
+                            expected_modalidad,
+                            candidate.modalidad,
+                            candidate.docente_nombre,
+                        )
+                        continue
+
                     dedup_key = (
                         candidate.docente_nombre,
                         candidate.curso,

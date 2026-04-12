@@ -36,6 +36,7 @@ from app.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.domain.entities.evaluacion import Evaluacion
 from app.domain.entities.evaluacion_curso import EvaluacionCurso
 from app.domain.entities.evaluacion_dimension import EvaluacionDimension
+from app.domain.invariants import require_año, require_modalidad_valid, require_periodo_orden
 from app.infrastructure.external.gemini_gateway import GeminiGateway
 from app.infrastructure.repositories.documento import DocumentoRepository
 from app.infrastructure.repositories.evaluacion import EvaluacionRepository
@@ -166,6 +167,12 @@ class ProcessingService:
         data = result.data
         assert data is not None  # noqa: S101 — caller guarantees this
 
+        # ── Domain invariant enforcement [BR-MOD-01, BR-MOD-04] ─────
+        pd = data.periodo_data
+        require_modalidad_valid(pd.modalidad)
+        require_año(pd.año)
+        require_periodo_orden(pd.periodo_orden, pd.modalidad)
+
         # Store the full parsed data as JSON for downstream use
         datos_json = data.model_dump(mode="json")
 
@@ -249,5 +256,9 @@ class ProcessingService:
         lines = []
         for err in result.errors:
             lines.append(f"[{err.stage}/{err.code}] {err.message}")
+        return "\n".join(lines) if lines else "Error desconocido en el parser"
+        return "\n".join(lines) if lines else "Error desconocido en el parser"
+        return "\n".join(lines) if lines else "Error desconocido en el parser"
+        return "\n".join(lines) if lines else "Error desconocido en el parser"
         return "\n".join(lines) if lines else "Error desconocido en el parser"
         return "\n".join(lines) if lines else "Error desconocido en el parser"

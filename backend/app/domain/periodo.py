@@ -24,11 +24,12 @@ from dataclasses import dataclass
 
 from app.domain.entities.enums import Modalidad
 from app.domain.exceptions import ValidationError
+from app.domain.invariants import AÑO_MAX, AÑO_MIN
 
 # ── Constants ────────────────────────────────────────────────────────────
 
-_AÑO_MIN = 2000
-_AÑO_MAX = 2100
+# Year bounds imported from invariants — single source of truth.
+# Must match DB CHECK constraint: año >= 2020.
 
 # Compiled regexes — one per modalidad (anchored, case-insensitive)
 _RE_CUATRIMESTRAL = re.compile(r"^C([1-3])$", re.IGNORECASE)
@@ -328,8 +329,8 @@ def sort_periodos(rows: list[dict], *, key: str = "periodo") -> list[dict]:
 
 
 def _validar_año(año: int) -> None:
-    if not (_AÑO_MIN <= año <= _AÑO_MAX):
-        raise ValidationError(f"Año {año} fuera de rango válido [{_AÑO_MIN}-{_AÑO_MAX}]")
+    if not (AÑO_MIN <= año <= AÑO_MAX):
+        raise ValidationError(f"Año {año} fuera de rango válido [{AÑO_MIN}-{AÑO_MAX}]")
 
 
 def _extract_b2b_year(normalizado: str) -> int:

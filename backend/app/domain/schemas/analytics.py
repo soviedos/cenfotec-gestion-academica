@@ -37,6 +37,8 @@ class PeriodoMetrica(BaseSchema):
 
     periodo: str
     modalidad: str | None = None
+    año: int
+    periodo_orden: int
     promedio: float
     evaluaciones_count: int = Field(default=0)
 
@@ -46,6 +48,8 @@ class PeriodoOption(BaseSchema):
 
     periodo: str
     modalidad: str
+    año: int
+    periodo_orden: int
 
 
 class RankingDocente(BaseSchema):

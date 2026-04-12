@@ -144,4 +144,3 @@ async def download_documento(
             "Content-Disposition": f'inline; filename="{documento.nombre_archivo}"',
         },
     )
-    )

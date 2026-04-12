@@ -107,7 +107,9 @@ function AlertasSection({ alertas }: { alertas: AlertaDocente[] }) {
           <AlertTriangle className="size-4 text-amber-500" />
           Alertas ({alertas.length})
         </CardTitle>
-        <CardDescription>Docentes con promedio inferior al 60%</CardDescription>
+        <CardDescription>
+          Docentes por debajo del umbral de desempeño
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

@@ -184,6 +184,8 @@ class AnalyticsRepository:
             select(
                 Evaluacion.periodo,
                 func.min(Evaluacion.modalidad).label("modalidad"),
+                func.min(Evaluacion.año).label("año"),
+                func.min(Evaluacion.periodo_orden).label("periodo_orden"),
                 func.avg(Evaluacion.puntaje_general.cast(Float)).label("promedio"),
                 func.count(Evaluacion.id).label("evaluaciones_count"),
             )
@@ -202,6 +204,8 @@ class AnalyticsRepository:
             {
                 "periodo": r.periodo,
                 "modalidad": r.modalidad,
+                "año": r.año,
+                "periodo_orden": r.periodo_orden,
                 "promedio": round(float(r.promedio), 2),
                 "evaluaciones_count": r.evaluaciones_count,
             }
@@ -309,6 +313,8 @@ class AnalyticsRepository:
             select(
                 Evaluacion.periodo,
                 func.min(Evaluacion.modalidad).label("modalidad"),
+                func.min(Evaluacion.año).label("año"),
+                func.min(Evaluacion.periodo_orden).label("periodo_orden"),
             )
             .where(Evaluacion.estado == "completado")
             .group_by(Evaluacion.periodo)
@@ -316,5 +322,13 @@ class AnalyticsRepository:
         if modalidad:
             stmt = stmt.where(Evaluacion.modalidad == modalidad)
         rows = (await self.session.execute(stmt)).all()
-        unsorted = [{"periodo": r.periodo, "modalidad": r.modalidad} for r in rows]
+        unsorted = [
+            {
+                "periodo": r.periodo,
+                "modalidad": r.modalidad,
+                "año": r.año,
+                "periodo_orden": r.periodo_orden,
+            }
+            for r in rows
+        ]
         return sort_periodos(unsorted)
