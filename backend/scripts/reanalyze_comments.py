@@ -21,14 +21,18 @@ logger = logging.getLogger("reanalyze")
 
 async def main() -> None:
     # Import inside main so .env is loaded first
-    from app.application.classification import classify_comment
-    from app.application.services.gemini_enrichment_service import GeminiEnrichmentService
     from app.core.config import settings
-    from app.domain.entities.comentario_analisis import ComentarioAnalisis
-    from app.domain.entities.evaluacion import Evaluacion
-    from app.infrastructure.database.session import async_session_factory
-    from app.infrastructure.database.session import engine as async_engine
-    from app.infrastructure.external.gemini_gateway import GeminiGateway
+    from app.modules.evaluacion_docente.application.classification import classify_comment
+    from app.modules.evaluacion_docente.application.services.gemini_enrichment_service import (
+        GeminiEnrichmentService,
+    )
+    from app.modules.evaluacion_docente.domain.entities.comentario_analisis import (
+        ComentarioAnalisis,
+    )
+    from app.modules.evaluacion_docente.domain.entities.evaluacion import Evaluacion
+    from app.modules.evaluacion_docente.infrastructure.external.gemini_gateway import GeminiGateway
+    from app.shared.infrastructure.database.session import async_session_factory
+    from app.shared.infrastructure.database.session import engine as async_engine
 
     # ── Phase 0: Check state ────────────────────────────────────────
     async with async_session_factory() as db:

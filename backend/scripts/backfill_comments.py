@@ -14,11 +14,11 @@ import logging
 
 import sqlalchemy as sa
 
-from app.application.classification import classify_comment
-from app.application.parsing.parser import parse_evaluacion
-from app.domain.entities.comentario_analisis import ComentarioAnalisis
-from app.infrastructure.database.session import async_session_factory, engine
-from app.infrastructure.storage.file_storage import MinioFileStorage
+from app.modules.evaluacion_docente.application.classification import classify_comment
+from app.modules.evaluacion_docente.application.parsing.parser import parse_evaluacion
+from app.modules.evaluacion_docente.domain.entities.comentario_analisis import ComentarioAnalisis
+from app.shared.infrastructure.database.session import async_session_factory, engine
+from app.shared.infrastructure.storage.file_storage import MinioFileStorage
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)

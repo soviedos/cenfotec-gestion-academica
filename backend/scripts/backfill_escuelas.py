@@ -7,7 +7,7 @@ import asyncio
 
 from sqlalchemy import text
 
-from app.infrastructure.database.session import async_session_factory
+from app.shared.infrastructure.database.session import async_session_factory
 
 # Same mapping as in courses.py parser
 PREFIX_ESCUELA: dict[str, str] = {

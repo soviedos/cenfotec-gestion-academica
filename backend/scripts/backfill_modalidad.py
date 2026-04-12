@@ -15,9 +15,9 @@ import asyncio
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities.evaluacion import Evaluacion
-from app.domain.periodo import parse_periodo
-from app.infrastructure.database.session import async_session_factory
+from app.modules.evaluacion_docente.domain.entities.evaluacion import Evaluacion
+from app.modules.evaluacion_docente.domain.periodo import parse_periodo
+from app.shared.infrastructure.database.session import async_session_factory
 
 
 async def backfill() -> None:

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import (
+from app.modules.evaluacion_docente.api import (
     alertas,
     analytics,
     config_routes,
