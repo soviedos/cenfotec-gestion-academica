@@ -1,0 +1,23 @@
+name: Deploy to Proxmox
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /opt/cenfotec-gestion-academica
+          git fetch origin
+          git reset --hard origin/main
+
+      - name: Rebuild and restart containers
+        run: |
+          cd /opt/cenfotec-gestion-academica
+          docker compose --env-file .env -f infra/docker/docker-compose.yml up -d --build
+
+      - name: Cleanup unused images
+        run: docker image prune -f
