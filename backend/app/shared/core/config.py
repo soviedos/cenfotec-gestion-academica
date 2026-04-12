@@ -15,20 +15,18 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
 
     # Database
-    database_url: str = (
-        "postgresql+asyncpg://eval_user:eval_pass_dev@localhost:5432/gestion_academica"
-    )
+    database_url: str
     db_echo: bool = False
     db_pool_size: int = 5
     db_max_overflow: int = 10
 
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = ""
 
     # MinIO
-    minio_endpoint: str = "localhost:9000"
-    minio_access_key: str = "minio_admin"
-    minio_secret_key: SecretStr = SecretStr("minio_pass_dev")
+    minio_endpoint: str
+    minio_access_key: str = ""
+    minio_secret_key: SecretStr = SecretStr("")
     minio_bucket: str = "evaluaciones"
     minio_secure: bool = False
 
@@ -47,11 +45,6 @@ class Settings(BaseSettings):
             if self.secret_key.get_secret_value() == "change-this-in-production":
                 raise ValueError(
                     "SECRET_KEY must be changed from the default in non-development environments"
-                )
-            if self.minio_secret_key.get_secret_value() == "minio_pass_dev":
-                raise ValueError(
-                    "MINIO_SECRET_KEY must be changed from"
-                    " the default in non-development environments"
                 )
             if not self.minio_secure:
                 raise ValueError("MINIO_SECURE must be True in non-development environments")
