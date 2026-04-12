@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import case, func, literal, select, text
+from sqlalchemy import String, case, func, literal, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.domain.alert_rules import AlertCandidate, DocenteCursoSnapshot
@@ -113,7 +113,7 @@ class AlertaRepository(BaseRepository[Alerta]):
         # evaluations for the same combination [AL-10].
         stmt = (
             select(
-                func.max(Evaluacion.id).label("evaluacion_id"),
+                func.max(Evaluacion.id.cast(String)).label("evaluacion_id"),
                 Evaluacion.docente_nombre,
                 func.coalesce(Evaluacion.materia, literal("SIN CURSO")).label("curso"),
                 Evaluacion.periodo,
@@ -153,7 +153,7 @@ class AlertaRepository(BaseRepository[Alerta]):
         for row in result.mappings():
             curso = row["curso"]
             snap = DocenteCursoSnapshot(
-                evaluacion_id=row["evaluacion_id"],
+                evaluacion_id=uuid.UUID(row["evaluacion_id"]),
                 docente_nombre=row["docente_nombre"],
                 curso=curso,
                 periodo=row["periodo"],
