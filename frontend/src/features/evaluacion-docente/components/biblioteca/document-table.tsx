@@ -38,6 +38,7 @@ export function DocumentTable({
 }: DocumentTableProps) {
   const columns = getColumns(sortBy, sortOrder, onSort, onDelete);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
