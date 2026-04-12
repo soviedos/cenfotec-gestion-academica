@@ -234,6 +234,7 @@ async def test_rebuild_empty_db(client):
     assert data["modalidades_processed"] == 0
 
 
+@pytest.mark.requires_postgres
 @pytest.mark.asyncio
 async def test_rebuild_generates_alerts(client, db):
     # Seed a low-scoring evaluacion → should trigger BAJO_DESEMPEÑO alert
@@ -246,6 +247,7 @@ async def test_rebuild_generates_alerts(client, db):
     assert "CUATRIMESTRAL" in data["periodos_by_modalidad"]
 
 
+@pytest.mark.requires_postgres
 @pytest.mark.asyncio
 async def test_rebuild_then_list(client, db):
     await _seed_evaluacion(db)

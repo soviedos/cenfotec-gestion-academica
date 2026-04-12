@@ -560,3 +560,458 @@ class TestSinCurso:
         candidates = engine._detect({("Prof. García", "SIN CURSO"): snap}, {})
         assert len(candidates) == 1
         assert candidates[0].curso == "SIN CURSO"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Year-change scenarios — strict [AL-01]
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestYearChangeStrict:
+    """Verify year boundaries are handled correctly for each modalidad."""
+
+    def test_cuatrimestral_c3_previous_year_to_c1_current(self):
+        """Caída detector must fire when comparing C1 2025 vs C3 2024."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[CaidaDetector()])
+
+        actual = _snap(periodo="C1 2025", puntaje=60.0, modalidad="CUATRIMESTRAL")
+        anterior = _snap(
+            periodo="C3 2024",
+            puntaje=90.0,
+            eval_id=_UUID2,
+            modalidad="CUATRIMESTRAL",
+        )
+
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): actual},
+            {("Prof. García", "ISW-101"): anterior},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        assert len(candidates) == 1
+        assert candidates[0].tipo_alerta == TipoAlerta.CAIDA
+        assert candidates[0].valor_anterior == 90.0
+        assert candidates[0].valor_actual == 60.0
+        assert candidates[0].modalidad == "CUATRIMESTRAL"
+
+    def test_mensual_m10_previous_year_to_m1_current(self):
+        """Caída detector must fire when comparing M1 2026 vs M10 2025."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[CaidaDetector()])
+
+        actual = _snap(periodo="M1 2026", puntaje=65.0, modalidad="MENSUAL")
+        anterior = _snap(
+            periodo="M10 2025",
+            puntaje=90.0,
+            eval_id=_UUID2,
+            modalidad="MENSUAL",
+        )
+
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): actual},
+            {("Prof. García", "ISW-101"): anterior},
+            expected_modalidad="MENSUAL",
+        )
+        assert len(candidates) == 1
+        assert candidates[0].modalidad == "MENSUAL"
+        assert "M10 2025" in candidates[0].descripcion
+
+    async def test_engine_loads_cross_year_periods(self):
+        """run_for_modalidad correctly pairs C1 2025 (actual) with C3 2024 (anterior)."""
+        mock_db = AsyncMock()
+        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+            repo = cls.return_value
+            repo.find_last_two_periods = AsyncMock(return_value=["C1 2025", "C3 2024"])
+            repo.load_snapshots = AsyncMock(
+                return_value={
+                    "C1 2025": {
+                        ("Prof. García", "ISW-101"): _snap(periodo="C1 2025", puntaje=55.0)
+                    },
+                    "C3 2024": {
+                        ("Prof. García", "ISW-101"): _snap(
+                            periodo="C3 2024", puntaje=90.0, eval_id=_UUID2
+                        )
+                    },
+                },
+            )
+            repo.upsert_batch = AsyncMock(return_value=2)
+
+            engine = AlertEngine(mock_db, detectors=[BajoDesempenoDetector(), CaidaDetector()])
+            result = await engine.run_for_modalidad("CUATRIMESTRAL")
+
+            assert result.periodos_by_modalidad["CUATRIMESTRAL"] == [
+                "C1 2025",
+                "C3 2024",
+            ]
+            # bajo (55 < 60 → alta) + caída (90 → 55 = 35 drop → alta)
+            assert result.candidates_generated == 2
+
+    def test_sentimiento_across_year_boundary(self):
+        """Sentimiento detector fires across year boundary."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[SentimientoDetector()])
+
+        actual = _snap(
+            periodo="C1 2025",
+            total=100,
+            negativos=30,
+            modalidad="CUATRIMESTRAL",
+        )
+        anterior = _snap(
+            periodo="C3 2024",
+            total=100,
+            negativos=5,
+            eval_id=_UUID2,
+            modalidad="CUATRIMESTRAL",
+        )
+
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): actual},
+            {("Prof. García", "ISW-101"): anterior},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        assert len(candidates) == 1
+        assert candidates[0].tipo_alerta == TipoAlerta.SENTIMIENTO
+        assert candidates[0].modalidad == "CUATRIMESTRAL"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Missing periods — strict [AL-02]
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestMissingPeriodsStrict:
+    """When some periods are missing, engine must behave safely."""
+
+    async def test_gap_uses_last_two_available(self):
+        """If C2 2025 is missing, engine uses C3 2025 + C1 2025 (the two most recent)."""
+        mock_db = AsyncMock()
+        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+            repo = cls.return_value
+            # Simulating C3 2025 and C1 2025 exist, C2 2025 is missing
+            repo.find_last_two_periods = AsyncMock(return_value=["C3 2025", "C1 2025"])
+            repo.load_snapshots = AsyncMock(
+                return_value={
+                    "C3 2025": {
+                        ("Prof. García", "ISW-101"): _snap(periodo="C3 2025", puntaje=50.0)
+                    },
+                    "C1 2025": {
+                        ("Prof. García", "ISW-101"): _snap(
+                            periodo="C1 2025", puntaje=90.0, eval_id=_UUID2
+                        )
+                    },
+                },
+            )
+            repo.upsert_batch = AsyncMock(return_value=2)
+
+            engine = AlertEngine(mock_db, detectors=[BajoDesempenoDetector(), CaidaDetector()])
+            result = await engine.run_for_modalidad("CUATRIMESTRAL")
+
+            assert result.periodos_by_modalidad["CUATRIMESTRAL"] == [
+                "C3 2025",
+                "C1 2025",
+            ]
+            # bajo (50 < 60) + caída (90 → 50 = 40pt drop)
+            assert result.candidates_generated == 2
+
+    async def test_only_one_period_no_comparative(self):
+        """Single period: only absolute detectors fire, no comparative alerts."""
+        mock_db = AsyncMock()
+        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+            repo = cls.return_value
+            repo.find_last_two_periods = AsyncMock(return_value=["M5 2025"])
+            repo.load_snapshots = AsyncMock(
+                return_value={
+                    "M5 2025": {
+                        ("Prof. García", "ISW-101"): _snap(
+                            periodo="M5 2025",
+                            puntaje=50.0,
+                            modalidad="MENSUAL",
+                            total=100,
+                            negativos=80,
+                        )
+                    },
+                },
+            )
+            repo.upsert_batch = AsyncMock(return_value=1)
+
+            engine = AlertEngine(
+                mock_db,
+                detectors=[
+                    BajoDesempenoDetector(),
+                    CaidaDetector(),
+                    SentimientoDetector(),
+                ],
+            )
+            result = await engine.run_for_modalidad("MENSUAL")
+
+            # Only BajoDesempeño fires; Caída and Sentimiento need anterior
+            assert result.candidates_generated == 1
+            upserted = repo.upsert_batch.call_args[0][0]
+            assert all(c.tipo_alerta == TipoAlerta.BAJO_DESEMPENO for c in upserted)
+
+    async def test_zero_periods_no_alerts(self):
+        """No completed evaluations → zero alerts, zero processing."""
+        mock_db = AsyncMock()
+        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+            repo = cls.return_value
+            repo.find_last_two_periods = AsyncMock(return_value=[])
+
+            engine = AlertEngine(mock_db, detectors=[_StubDetector()])
+            result = await engine.run_for_modalidad("B2B")
+
+            assert result.modalidades_processed == 0
+            assert result.candidates_generated == 0
+            assert result.created_or_updated == 0
+            repo.load_snapshots.assert_not_called()
+
+    def test_docente_only_in_anterior_no_alert(self):
+        """Docente disappearing from current period must NOT trigger alerts."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[BajoDesempenoDetector(), CaidaDetector()])
+        anterior = _snap(periodo="C3 2024", puntaje=50.0, eval_id=_UUID2)
+        candidates = engine._detect(
+            {},
+            {("Prof. García", "ISW-101"): anterior},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        assert candidates == []
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Modalidad mixing prevention — strict [BR-MOD-02]
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestModalidadMixingStrict:
+    """Verify the engine never mixes data across modalidades."""
+
+    def test_detect_filters_wrong_modalidad_candidate(self):
+        """_detect with expected_modalidad rejects mismatched candidates."""
+        db = AsyncMock()
+
+        class _WrongModalidadDetector:
+            """Detector that emits a candidate with MENSUAL modalidad."""
+
+            tipo = TipoAlerta.BAJO_DESEMPENO
+
+            def detect(self, actual, anterior=None):
+                return [
+                    AlertCandidate(
+                        evaluacion_id=actual.evaluacion_id,
+                        docente_nombre=actual.docente_nombre,
+                        curso=actual.curso,
+                        periodo=actual.periodo,
+                        modalidad="MENSUAL",  # WRONG — source is CUATRIMESTRAL
+                        tipo_alerta=self.tipo,
+                        metrica_afectada="puntaje_general",
+                        valor_actual=50.0,
+                        valor_anterior=None,
+                        descripcion="bad modalidad",
+                        severidad=Severidad.ALTA,
+                    )
+                ]
+
+        engine = AlertEngine(db, detectors=[_WrongModalidadDetector()])
+        snap = _snap(modalidad="CUATRIMESTRAL", puntaje=50.0)
+
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): snap},
+            {},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        # Must be filtered out — wrong modalidad
+        assert candidates == []
+
+    def test_detect_without_expected_modalidad_keeps_all(self):
+        """Without expected_modalidad (legacy), no filtering occurs."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[_StubDetector()])
+
+        snap = _snap(modalidad="CUATRIMESTRAL", puntaje=50.0)
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): snap},
+            {},
+        )
+        assert len(candidates) == 1
+
+    async def test_run_all_isolates_modalidades(self):
+        """run_all processes each modalidad independently — no data leaks."""
+        mock_db = AsyncMock()
+        with patch("app.application.services.alert_engine.AlertaRepository") as cls:
+            repo = cls.return_value
+
+            snapshot_calls: list[tuple[str, list[str]]] = []
+
+            async def track_snapshots(mod, periodos):
+                snapshot_calls.append((mod, list(periodos)))
+                return {
+                    periodos[0]: {
+                        ("Prof.", "C"): _snap(puntaje=50.0, modalidad=mod, periodo=periodos[0])
+                    }
+                }
+
+            repo.find_last_two_periods = AsyncMock(
+                side_effect=lambda m: {
+                    "B2B": [],
+                    "CUATRIMESTRAL": ["C1 2025"],
+                    "MENSUAL": ["M1 2025"],
+                }.get(m, [])
+            )
+            repo.load_snapshots = AsyncMock(side_effect=track_snapshots)
+            repo.upsert_batch = AsyncMock(return_value=1)
+
+            engine = AlertEngine(mock_db, detectors=[_StubDetector()])
+            result = await engine.run_all()
+
+            # Verify each load_snapshots call was scoped to its modalidad
+            assert len(snapshot_calls) == 2
+            modalidades_called = {m for m, _ in snapshot_calls}
+            assert modalidades_called == {"CUATRIMESTRAL", "MENSUAL"}
+
+            # Verify upsert_batch candidates carry correct modalidades
+            for call in repo.upsert_batch.call_args_list:
+                candidates = call[0][0]
+                for c in candidates:
+                    assert c.modalidad in {"CUATRIMESTRAL", "MENSUAL"}
+
+    def test_same_docente_two_modalidades_independent(self):
+        """Same docente in CUATRIMESTRAL and MENSUAL → independent alerts."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[BajoDesempenoDetector()])
+
+        # Run for CUATRIMESTRAL
+        cuatri = _snap(
+            docente="Prof. García",
+            curso="ISW-101",
+            puntaje=50.0,
+            modalidad="CUATRIMESTRAL",
+            periodo="C1 2025",
+        )
+        c1 = engine._detect(
+            {("Prof. García", "ISW-101"): cuatri},
+            {},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+
+        # Run for MENSUAL
+        mensual = _snap(
+            docente="Prof. García",
+            curso="ISW-101",
+            puntaje=50.0,
+            modalidad="MENSUAL",
+            periodo="M1 2025",
+        )
+        c2 = engine._detect(
+            {("Prof. García", "ISW-101"): mensual},
+            {},
+            expected_modalidad="MENSUAL",
+        )
+
+        assert len(c1) == 1
+        assert len(c2) == 1
+        assert c1[0].modalidad == "CUATRIMESTRAL"
+        assert c2[0].modalidad == "MENSUAL"
+        # Different dedup keys (periodo differs + modalidad differs)
+        assert c1[0].periodo != c2[0].periodo
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Alert duplication prevention — strict [AL-40]
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestDuplicationPreventionStrict:
+    """Verify no duplicate alerts are created, even in edge cases."""
+
+    def test_rerun_produces_identical_candidates(self):
+        """Running _detect twice with same data yields same result."""
+        db = AsyncMock()
+        engine = AlertEngine(
+            db,
+            detectors=[BajoDesempenoDetector(), CaidaDetector()],
+        )
+
+        actual = _snap(periodo="C1 2025", puntaje=55.0)
+        anterior = _snap(periodo="C3 2024", puntaje=90.0, eval_id=_UUID2)
+        snap_a = {("Prof. García", "ISW-101"): actual}
+        snap_p = {("Prof. García", "ISW-101"): anterior}
+
+        run1 = engine._detect(snap_a, snap_p, expected_modalidad="CUATRIMESTRAL")
+        run2 = engine._detect(snap_a, snap_p, expected_modalidad="CUATRIMESTRAL")
+
+        assert len(run1) == len(run2)
+        for c1, c2 in zip(run1, run2):
+            assert c1.docente_nombre == c2.docente_nombre
+            assert c1.curso == c2.curso
+            assert c1.periodo == c2.periodo
+            assert c1.tipo_alerta == c2.tipo_alerta
+            assert c1.modalidad == c2.modalidad
+            assert c1.severidad == c2.severidad
+
+    def test_multiple_detectors_same_type_dedup(self):
+        """Two detectors returning same tipo_alerta → only first candidate kept."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[_StubDetector(), _StubDetector()])
+
+        snap = _snap(puntaje=50.0)
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): snap},
+            {},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        assert len(candidates) == 1
+
+    def test_different_cursos_same_docente_not_deduped(self):
+        """Same docente, different cursos → separate alerts (not duplicates)."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[BajoDesempenoDetector()])
+
+        snap_actual = {
+            ("Prof. García", "ISW-101"): _snap(
+                docente="Prof. García", curso="ISW-101", puntaje=50.0
+            ),
+            ("Prof. García", "ISW-202"): _snap(
+                docente="Prof. García", curso="ISW-202", puntaje=55.0
+            ),
+        }
+        candidates = engine._detect(snap_actual, {}, expected_modalidad="CUATRIMESTRAL")
+        # Both courses below threshold → separate alerts
+        assert len(candidates) == 2
+        cursos = {c.curso for c in candidates}
+        assert cursos == {"ISW-101", "ISW-202"}
+
+    def test_different_tipos_same_docente_curso_not_deduped(self):
+        """Bajo + Caída for same docente+curso → 2 alerts (different tipo_alerta)."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[BajoDesempenoDetector(), CaidaDetector()])
+
+        actual = _snap(docente="Prof. García", curso="ISW-101", puntaje=50.0, periodo="C1 2025")
+        anterior = _snap(
+            docente="Prof. García",
+            curso="ISW-101",
+            puntaje=90.0,
+            periodo="C3 2024",
+            eval_id=_UUID2,
+        )
+
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): actual},
+            {("Prof. García", "ISW-101"): anterior},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        tipos = {c.tipo_alerta for c in candidates}
+        assert tipos == {TipoAlerta.BAJO_DESEMPENO, TipoAlerta.CAIDA}
+
+    def test_duplicating_detector_filtered_by_dedup(self):
+        """Detector returning 2 identical candidates → only 1 passes dedup."""
+        db = AsyncMock()
+        engine = AlertEngine(db, detectors=[_DuplicatingDetector()])
+
+        snap = _snap(puntaje=50.0)
+        candidates = engine._detect(
+            {("Prof. García", "ISW-101"): snap},
+            {},
+            expected_modalidad="CUATRIMESTRAL",
+        )
+        assert len(candidates) == 1

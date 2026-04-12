@@ -6,18 +6,22 @@ Fixture scopes:
       rolled back automatically (zero leftover data).
     - ``client``: function-scoped — ASGI test client with DB override.
 
-Notes:
-    Uses ``testcontainers`` to spin up a real PostgreSQL container so that
-    tests exercise the same dialect, UUID type, JSON operators, and
-    constraints as production.  The container is started once per session
-    and torn down automatically.
+Backend selection:
+    If Docker is available, a real PostgreSQL container (via testcontainers)
+    is used so that tests exercise the same dialect, UUID type, JSON operators,
+    and constraints as production.  Otherwise, an in-memory SQLite database
+    (via aiosqlite) provides a fast, zero-dependency fallback.
 """
+
+from __future__ import annotations
+
+import logging
+import shutil
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import NullPool
-from testcontainers.postgres import PostgresContainer
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.api.deps import get_file_storage, get_gemini_gateway
 from app.api.rate_limit import query_rate_limiter
@@ -26,6 +30,40 @@ from app.domain.entities.base import Base
 from app.infrastructure.database.session import get_db
 from app.main import app
 from tests.fixtures.fakes import FakeFileStorage, FakeGeminiGateway
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Docker detection
+# ---------------------------------------------------------------------------
+
+
+def _docker_available() -> bool:
+    """Return True only if the Docker daemon is reachable."""
+    if not shutil.which("docker"):
+        return False
+    try:
+        import docker
+
+        docker.from_env().ping()
+        return True
+    except Exception:
+        return False
+
+
+_USE_POSTGRES = _docker_available()
+
+# ---------------------------------------------------------------------------
+# SQLite compatibility: compile PostgreSQL JSONB as JSON on SQLite
+# ---------------------------------------------------------------------------
+if not _USE_POSTGRES:
+    from sqlalchemy.dialects.postgresql import JSONB
+    from sqlalchemy.ext.compiler import compiles
+
+    @compiles(JSONB, "sqlite")
+    def _compile_jsonb_sqlite(element, compiler, **kw):  # noqa: ARG001
+        return "JSON"
+
 
 # ---------------------------------------------------------------------------
 # PostgreSQL container (session-scoped — one container per test run)
@@ -36,7 +74,14 @@ _PG_IMAGE = "pgvector/pgvector:pg16"
 
 @pytest.fixture(scope="session")
 def postgres_container():
-    """Start a disposable PostgreSQL container for the entire test session."""
+    """Start a disposable PostgreSQL container, or yield None for SQLite."""
+    if not _USE_POSTGRES:
+        logger.info("Docker unavailable — using in-memory SQLite fallback")
+        yield None
+        return
+
+    from testcontainers.postgres import PostgresContainer
+
     with PostgresContainer(
         image=_PG_IMAGE,
         username="test_user",
@@ -48,13 +93,20 @@ def postgres_container():
 
 @pytest.fixture(scope="session")
 def engine(postgres_container):
-    """Create a single async engine connected to the test container."""
-    # Build an asyncpg URL regardless of what driver testcontainers uses
-    from sqlalchemy.engine import make_url
+    """Create an async engine: PostgreSQL if Docker available, else SQLite."""
+    if postgres_container is not None:
+        from sqlalchemy.engine import make_url
 
-    sync_url = postgres_container.get_connection_url()
-    async_url = make_url(sync_url).set(drivername="postgresql+asyncpg")
-    return create_async_engine(async_url, echo=False, poolclass=NullPool)
+        sync_url = postgres_container.get_connection_url()
+        async_url = make_url(sync_url).set(drivername="postgresql+asyncpg")
+        return create_async_engine(async_url, echo=False, poolclass=NullPool)
+
+    return create_async_engine(
+        "sqlite+aiosqlite://",
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -66,6 +118,18 @@ async def tables(engine):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Auto-skip tests marked ``requires_postgres`` when running on SQLite
+# ---------------------------------------------------------------------------
+def pytest_collection_modifyitems(config, items):  # noqa: ARG001
+    if _USE_POSTGRES:
+        return
+    skip_pg = pytest.mark.skip(reason="Requires PostgreSQL (Docker unavailable)")
+    for item in items:
+        if "requires_postgres" in item.keywords:
+            item.add_marker(skip_pg)
 
 
 # ---------------------------------------------------------------------------

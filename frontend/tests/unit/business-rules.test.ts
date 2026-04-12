@@ -15,6 +15,7 @@ import {
   TEMAS,
   temaLabel,
   tipoAlertaLabel,
+  TIPOS_COMENTARIO,
   tipoComentarioLabel,
   tipoComentarioBadgeStyle,
   alertaEstadoLabel,
@@ -165,6 +166,10 @@ describe("Tema helpers [BR-CLAS-10]", () => {
 // ════════════════════════════════════════════════════════════════
 
 describe("Tipo comentario labels [BR-CLAS-01]", () => {
+  it("TIPOS_COMENTARIO has all 3 values", () => {
+    expect(TIPOS_COMENTARIO).toEqual(["fortaleza", "mejora", "observacion"]);
+  });
+
   it("returns labels for all types", () => {
     expect(tipoComentarioLabel("fortaleza")).toBe("Fortaleza");
     expect(tipoComentarioLabel("mejora")).toBe("Mejora");

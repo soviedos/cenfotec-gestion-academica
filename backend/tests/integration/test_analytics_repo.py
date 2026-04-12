@@ -8,6 +8,7 @@ from tests.fixtures.factories import make_dimension, make_documento, make_evalua
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 
+
 async def _seed_evaluaciones(db: AsyncSession) -> dict:
     """Seed the DB with two docentes across two periods and return references."""
     doc1 = make_documento()
@@ -17,16 +18,31 @@ async def _seed_evaluaciones(db: AsyncSession) -> dict:
     await db.flush()
 
     eval1 = make_evaluacion(
-        documento_id=doc1.id, docente_nombre="Prof. García",
-        periodo="2025-1", puntaje_general=85.0, estado="completado",
+        documento_id=doc1.id,
+        docente_nombre="Prof. García",
+        periodo="2025-1",
+        año=2025,
+        periodo_orden=1,
+        puntaje_general=85.0,
+        estado="completado",
     )
     eval2 = make_evaluacion(
-        documento_id=doc2.id, docente_nombre="Prof. López",
-        periodo="2025-1", puntaje_general=90.0, estado="completado",
+        documento_id=doc2.id,
+        docente_nombre="Prof. López",
+        periodo="2025-1",
+        año=2025,
+        periodo_orden=1,
+        puntaje_general=90.0,
+        estado="completado",
     )
     eval3 = make_evaluacion(
-        documento_id=doc3.id, docente_nombre="Prof. García",
-        periodo="2025-2", puntaje_general=88.0, estado="completado",
+        documento_id=doc3.id,
+        docente_nombre="Prof. García",
+        periodo="2025-2",
+        año=2025,
+        periodo_orden=2,
+        puntaje_general=88.0,
+        estado="completado",
     )
     db.add_all([eval1, eval2, eval3])
     await db.flush()
@@ -43,12 +59,17 @@ async def _seed_evaluaciones(db: AsyncSession) -> dict:
     await db.flush()
 
     return {
-        "eval1": eval1, "eval2": eval2, "eval3": eval3,
-        "doc1": doc1, "doc2": doc2, "doc3": doc3,
+        "eval1": eval1,
+        "eval2": eval2,
+        "eval3": eval3,
+        "doc1": doc1,
+        "doc2": doc2,
+        "doc3": doc3,
     }
 
 
 # ── Tests ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_resumen_global_empty(db):
@@ -136,6 +157,10 @@ async def test_evolucion_periodos(db):
     assert rows[1]["periodo"] == "2025-2"
     # 2025-1: (85+90)/2 = 87.5
     assert rows[0]["promedio"] == pytest.approx(87.5, abs=0.01)
+    assert rows[0]["año"] == 2025
+    assert rows[0]["periodo_orden"] == 1
+    assert rows[1]["año"] == 2025
+    assert rows[1]["periodo_orden"] == 2
 
 
 @pytest.mark.asyncio
@@ -175,7 +200,9 @@ async def test_ignores_non_completado(db):
     db.add(doc)
     await db.flush()
     eval_ = make_evaluacion(
-        documento_id=doc.id, estado="pendiente", puntaje_general=99.0,
+        documento_id=doc.id,
+        estado="pendiente",
+        puntaje_general=99.0,
     )
     db.add(eval_)
     await db.flush()

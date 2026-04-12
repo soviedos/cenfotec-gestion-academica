@@ -440,12 +440,12 @@ class TestEdgeCases:
         twice = normalizar_periodo(once)
         assert once == twice
 
-    @pytest.mark.parametrize("año", [2000, 2100])
+    @pytest.mark.parametrize("año", [2020, 2100])
     def test_year_boundary_valid(self, año: int) -> None:
         info = parse_periodo(f"C1 {año}")
         assert info.año == año
 
-    @pytest.mark.parametrize("año", [1999, 2101])
+    @pytest.mark.parametrize("año", [2019, 2101])
     def test_year_boundary_invalid(self, año: int) -> None:
         with pytest.raises(ValidationError):
             parse_periodo(f"C1 {año}")

@@ -17,6 +17,8 @@ async def _seed(db: AsyncSession) -> None:
         documento_id=doc1.id,
         docente_nombre="Prof. García",
         periodo="2025-1",
+        año=2025,
+        periodo_orden=1,
         puntaje_general=82.0,
         estado="completado",
     )
@@ -24,6 +26,8 @@ async def _seed(db: AsyncSession) -> None:
         documento_id=doc2.id,
         docente_nombre="Prof. López",
         periodo="2025-1",
+        año=2025,
+        periodo_orden=1,
         puntaje_general=91.0,
         estado="completado",
     )
@@ -127,6 +131,8 @@ async def test_evolucion_with_data(client, db):
     data = resp.json()
     assert len(data) == 1
     assert data[0]["periodo"] == "2025-1"
+    assert data[0]["año"] == 2025
+    assert data[0]["periodo_orden"] == 1
 
 
 # ── GET /api/v1/analytics/ranking ──────────────────────────────────────

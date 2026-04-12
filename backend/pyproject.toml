@@ -30,6 +30,7 @@ dev = [
     "httpx>=0.27.0",
     "testcontainers[postgres]>=4.0.0",
     "psycopg[binary]>=3.2.0",
+    "aiosqlite>=0.20.0",
 ]
 
 [tool.ruff]
@@ -46,6 +47,7 @@ markers = [
     "unit: fast tests without I/O",
     "integration: tests that hit the database",
     "api: end-to-end HTTP tests",
+    "requires_postgres: tests that need PostgreSQL (skipped on SQLite)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:sqlalchemy.*",

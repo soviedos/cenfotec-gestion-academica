@@ -227,6 +227,7 @@ class TestLoadSnapshots:
 # ═══════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.requires_postgres
 class TestUpsertBatch:
     async def test_empty_batch_returns_zero(self, db):
         repo = AlertaRepository(db)
