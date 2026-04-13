@@ -46,8 +46,6 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "SECRET_KEY must be changed from the default in non-development environments"
                 )
-            if not self.minio_secure:
-                raise ValueError("MINIO_SECURE must be True in non-development environments")
         return self
 
     @property
