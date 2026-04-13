@@ -29,6 +29,7 @@ jobs:
       - name: Rebuild and restart containers
         run: |
           cd /opt/cenfotec-gestion-academica
+          docker compose --env-file .env -f infra/docker/docker-compose.yml down --remove-orphans
           docker compose --env-file .env -f infra/docker/docker-compose.yml up -d --build
 
       - name: Cleanup unused images
