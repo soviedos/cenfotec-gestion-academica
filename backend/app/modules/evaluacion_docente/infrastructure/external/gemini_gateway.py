@@ -223,7 +223,7 @@ class GeminiGateway:
         config = types.GenerateContentConfig(
             system_instruction=QUERY_SYSTEM_PROMPT,
             temperature=0.3,
-            max_output_tokens=1024,
+            max_output_tokens=8192,
         )
 
         start = time.monotonic()
