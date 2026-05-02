@@ -317,7 +317,8 @@ class GeminiGateway:
         config = types.GenerateContentConfig(
             system_instruction=COMMENT_ANALYSIS_SYSTEM_PROMPT,
             temperature=0.1,
-            max_output_tokens=2048,
+            max_output_tokens=4096,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
             response_mime_type="application/json",
         )
 
@@ -353,7 +354,11 @@ class GeminiGateway:
 
         parsed = self._extract_json_array(raw_text)
         if parsed is None:
-            logger.warning("Gemini returned unparseable response for comment analysis")
+            logger.warning(
+                "Gemini returned unparseable response for comment analysis. "
+                "Raw text (first 500 chars): %s",
+                raw_text[:500],
+            )
             raise GeminiError(detail="Respuesta de Gemini no es JSON válido")
         return parsed
 

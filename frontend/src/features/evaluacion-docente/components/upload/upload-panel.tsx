@@ -13,13 +13,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DropZone } from "./drop-zone";
 import { FileItem, type FileItemData, type FileItemStatus } from "./file-item";
-import { uploadDocument, ApiClientError } from "@/features/evaluacion-docente/lib/api/documents";
+import {
+  uploadDocument,
+  ApiClientError,
+} from "@/features/evaluacion-docente/lib/api/documents";
 
 function nextFileId(): string {
   return crypto.randomUUID();
 }
 
-export function UploadPanel() {
+interface UploadPanelProps {
+  onUploadComplete?: () => void;
+}
+
+export function UploadPanel({ onUploadComplete }: UploadPanelProps) {
   const [files, setFiles] = useState<FileItemData[]>([]);
   const uploadingRef = useRef(false);
 
@@ -78,7 +85,8 @@ export function UploadPanel() {
     }
 
     uploadingRef.current = false;
-  }, [files, updateFileStatus]);
+    onUploadComplete?.();
+  }, [files, updateFileStatus, onUploadComplete]);
 
   const clearCompleted = useCallback(() => {
     setFiles((prev) => prev.filter((f) => f.status !== "success"));

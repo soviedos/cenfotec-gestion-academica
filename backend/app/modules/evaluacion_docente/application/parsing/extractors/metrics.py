@@ -49,7 +49,7 @@ def _try_parse_metrics_table(
             summary = _try_parse_summary_row(cells)
             continue
 
-        if cells[0] in KNOWN_DIMENSIONS:
+        if cells[0].lower() in KNOWN_DIMENSIONS:
             dim = _parse_dimension_row(cells)
             if dim:
                 dimensiones.append(dim)
@@ -67,7 +67,7 @@ def _parse_dimension_row(cells: list[str]) -> DimensionMetrica | None:
     if len(cells) < 9:
         return None
 
-    nombre = cells[0]
+    nombre = KNOWN_DIMENSIONS.get(cells[0].lower(), cells[0])
     est = _parse_fuente(cells[1], cells[2])
     director = _parse_fuente(cells[3], cells[4])
     auto = _parse_fuente(cells[5], cells[6])

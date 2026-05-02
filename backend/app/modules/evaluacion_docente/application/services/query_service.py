@@ -43,7 +43,7 @@ from app.modules.evaluacion_docente.infrastructure.repositories.gemini_audit imp
 logger = logging.getLogger(__name__)
 
 _MAX_COMMENTS = 20
-_MAX_METRICS = 10
+_MAX_METRICS = 15
 
 
 class QueryService:
@@ -189,7 +189,8 @@ class QueryService:
             func.count(Evaluacion.id).label("total_evaluaciones"),
             func.count(func.distinct(Evaluacion.docente_nombre)).label("total_docentes"),
         ).where(Evaluacion.estado == "completado")
-        avg_stmt = avg_stmt.where(Evaluacion.modalidad == f.modalidad)
+        if f.modalidad:
+            avg_stmt = avg_stmt.where(Evaluacion.modalidad == f.modalidad)
         if f.periodo:
             avg_stmt = avg_stmt.where(Evaluacion.periodo == f.periodo)
         if f.docente:
@@ -236,11 +237,11 @@ class QueryService:
             )
 
         # Distinct periods available
-        period_stmt = (
-            select(func.count(func.distinct(Evaluacion.periodo)))
-            .where(Evaluacion.estado == "completado")
-            .where(Evaluacion.modalidad == f.modalidad)
+        period_stmt = select(func.count(func.distinct(Evaluacion.periodo))).where(
+            Evaluacion.estado == "completado"
         )
+        if f.modalidad:
+            period_stmt = period_stmt.where(Evaluacion.modalidad == f.modalidad)
         if f.docente:
             period_stmt = period_stmt.where(Evaluacion.docente_nombre == f.docente)
         period_count = (await self.db.execute(period_stmt)).scalar() or 0
@@ -269,7 +270,8 @@ class QueryService:
                 .order_by(func.avg(EvaluacionDimension.pct_promedio.cast(Float)).desc())
                 .limit(_MAX_METRICS)
             )
-            dim_stmt = dim_stmt.where(Evaluacion.modalidad == f.modalidad)
+            if f.modalidad:
+                dim_stmt = dim_stmt.where(Evaluacion.modalidad == f.modalidad)
             if f.periodo:
                 dim_stmt = dim_stmt.where(Evaluacion.periodo == f.periodo)
             if f.docente:
@@ -288,6 +290,45 @@ class QueryService:
                             },
                         }
                     )
+
+        # Per-docente ranking (when no specific docente filter is set)
+        # This gives Gemini the data it needs for comparative questions
+        # like "best/worst evaluation", "top professors", etc.
+        if not f.docente:
+            remaining_slots = _MAX_METRICS - len(results)
+            if remaining_slots > 0:
+                ranking_stmt = (
+                    select(
+                        Evaluacion.docente_nombre,
+                        func.avg(Evaluacion.puntaje_general.cast(Float)).label("promedio"),
+                        func.count(Evaluacion.id).label("total"),
+                    )
+                    .where(Evaluacion.estado == "completado")
+                    .group_by(Evaluacion.docente_nombre)
+                    .order_by(func.avg(Evaluacion.puntaje_general.cast(Float)).desc())
+                    .limit(remaining_slots)
+                )
+                if f.modalidad:
+                    ranking_stmt = ranking_stmt.where(Evaluacion.modalidad == f.modalidad)
+                if f.periodo:
+                    ranking_stmt = ranking_stmt.where(Evaluacion.periodo == f.periodo)
+
+                ranking_rows = (await self.db.execute(ranking_stmt)).all()
+                for rank, rr in enumerate(ranking_rows, start=1):
+                    if rr.promedio is not None:
+                        label = (
+                            f"Ranking #{rank} — {rr.docente_nombre} (promedio, {rr.total} eval.)"
+                        )
+                        results.append(
+                            {
+                                "raw": {
+                                    "label": label,
+                                    "value": round(float(rr.promedio), 2),
+                                    "periodo": f.periodo,
+                                    "docente": rr.docente_nombre,
+                                },
+                            }
+                        )
 
         return results[:_MAX_METRICS]
 
@@ -317,7 +358,8 @@ class QueryService:
             .where(Evaluacion.estado == "completado")
         )
 
-        base = base.where(Evaluacion.modalidad == f.modalidad)
+        if f.modalidad:
+            base = base.where(Evaluacion.modalidad == f.modalidad)
         if f.periodo:
             base = base.where(Evaluacion.periodo == f.periodo)
         if f.docente:

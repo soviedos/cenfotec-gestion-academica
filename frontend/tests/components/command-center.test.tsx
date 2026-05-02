@@ -36,6 +36,10 @@ vi.mock("@/features/evaluacion-docente/lib/api/alertas", () => ({
   fetchAlerts: vi.fn(),
 }));
 
+vi.mock("@/features/evaluacion-docente/lib/api/analytics", () => ({
+  fetchEscuelas: vi.fn().mockResolvedValue([]),
+}));
+
 import { fetchDashboardSummary } from "@/features/evaluacion-docente/lib/api/dashboard";
 import {
   fetchAlertSummary,
@@ -311,7 +315,7 @@ describe("CommandCenter", () => {
     await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Alertas críticas (2)")).toBeInTheDocument();
+      expect(screen.getByText(/Alertas \(2\)/)).toBeInTheDocument();
     });
     expect(screen.getByText("Prof. Méndez")).toBeInTheDocument();
     expect(screen.getByText("45.2%")).toBeInTheDocument();
@@ -487,12 +491,19 @@ describe("CommandCenter", () => {
       page_size: 10,
       total_pages: 0,
     });
+    const user = userEvent.setup();
     render(<CommandCenter />);
 
+    // Select a modalidad so alert APIs are actually called
     await waitFor(() => {
       expect(
-        screen.getByText("No hay alertas críticas activas."),
+        screen.getByRole("tab", { name: "Cuatrimestral" }),
       ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("tab", { name: "Cuatrimestral" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/No hay alertas/)).toBeInTheDocument();
     });
   });
 

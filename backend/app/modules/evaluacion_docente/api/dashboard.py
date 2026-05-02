@@ -13,7 +13,8 @@ router = APIRouter()
 async def dashboard_summary(
     db: DbSession,
     modalidad: str | None = Query(None, description="Filtrar por modalidad"),
+    escuela: str | None = Query(None, description="Filtrar por escuela"),
 ) -> DashboardSummary:
     """Return aggregated executive dashboard data."""
     svc = DashboardService(db)
-    return await svc.summary(modalidad=modalidad)
+    return await svc.summary(modalidad=modalidad, escuela=escuela)

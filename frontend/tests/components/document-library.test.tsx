@@ -2,7 +2,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DocumentLibrary } from "@/features/evaluacion-docente/components/biblioteca/document-library";
-import type { Documento, PaginatedResponse } from "@/features/evaluacion-docente/types";
+import type {
+  Documento,
+  PaginatedResponse,
+} from "@/features/evaluacion-docente/types";
 
 // Mock the API module
 vi.mock("@/features/evaluacion-docente/lib/api/documents", () => ({
@@ -29,6 +32,8 @@ function makeResponse(
     error_detalle: null,
     content_fingerprint: null,
     posible_duplicado: false,
+    comentarios_total: 0,
+    comentarios_ia: 0,
     created_at: "2025-06-15T10:30:00Z",
     updated_at: "2025-06-15T10:30:00Z",
     ...item,

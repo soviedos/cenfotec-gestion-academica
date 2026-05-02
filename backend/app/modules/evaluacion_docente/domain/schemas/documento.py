@@ -63,6 +63,8 @@ class DocumentoRead(TimestampSchema):
     error_detalle: str | None
     content_fingerprint: str | None = None
     posible_duplicado: bool = False
+    comentarios_total: int = 0
+    comentarios_ia: int = 0
 
 
 class DocumentoUploadResponse(TimestampSchema):
@@ -87,3 +89,11 @@ class DocumentoFilterParams(BaseSchema):
     periodo: str | None = None
     nombre_archivo: str | None = None
     posible_duplicado: bool | None = None
+
+
+class BulkDeleteRequest(BaseSchema):
+    ids: list[uuid.UUID] = Field(..., min_length=1, max_length=100)
+
+
+class BulkDeleteResponse(BaseSchema):
+    deleted: int

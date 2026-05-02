@@ -17,7 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MODALIDADES } from "@/features/evaluacion-docente/lib/business-rules";
-import type { Modalidad, PeriodoOption } from "@/features/evaluacion-docente/types";
+import type {
+  Modalidad,
+  PeriodoOption,
+} from "@/features/evaluacion-docente/types";
 
 const ALL_ESCUELAS = "Todas las escuelas";
 const ALL_CURSOS = "Todos los cursos";
@@ -74,6 +77,8 @@ export function PeriodFilter({
       onModalidadChange(m);
       onPeriodoChange(undefined);
     }
+    onEscuelaChange(undefined);
+    onCursoChange(undefined);
   };
 
   const handlePeriodoClick = (p: string) => {

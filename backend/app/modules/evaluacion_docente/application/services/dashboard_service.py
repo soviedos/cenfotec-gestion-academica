@@ -5,8 +5,10 @@ from __future__ import annotations
 from sqlalchemy import Float, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.evaluacion_docente.domain.entities.alerta import Alerta
 from app.modules.evaluacion_docente.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.modules.evaluacion_docente.domain.entities.evaluacion import Evaluacion
+from app.modules.evaluacion_docente.domain.entities.evaluacion_curso import EvaluacionCurso
 from app.modules.evaluacion_docente.domain.periodo import sort_periodos
 from app.modules.evaluacion_docente.domain.schemas.dashboard import (
     ActividadReciente,
@@ -27,15 +29,17 @@ class DashboardService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def summary(self, *, modalidad: str | None = None) -> DashboardSummary:
-        kpis, docente_rows = await self._kpis_and_docentes(modalidad)
+    async def summary(
+        self, *, modalidad: str | None = None, escuela: str | None = None
+    ) -> DashboardSummary:
+        kpis, docente_rows = await self._kpis_and_docentes(modalidad, escuela)
         alertas = self._build_alertas(docente_rows)
         top = self._build_ranked(docente_rows[:5])
         bottom = self._build_ranked(
             list(reversed(docente_rows[-5:])), start_pos=len(docente_rows) - 4
         )
-        tendencia = await self._tendencia(modalidad)
-        insights = await self._insights(modalidad)
+        tendencia = await self._tendencia(modalidad, escuela)
+        insights = await self._insights(modalidad, escuela)
         actividad = await self._actividad_reciente()
 
         return DashboardSummary(
@@ -50,8 +54,24 @@ class DashboardService:
 
     # ── Private helpers ──────────────────────────────────────────────
 
+    @staticmethod
+    def _escuela_filter(escuela: str | None) -> list:
+        """Return SQLAlchemy filter clauses that restrict to evaluaciones linked to an escuela."""
+        if not escuela:
+            return []
+        return [
+            select(EvaluacionCurso.evaluacion_id)
+            .where(
+                EvaluacionCurso.evaluacion_id == Evaluacion.id,
+                EvaluacionCurso.escuela == escuela,
+            )
+            .exists()
+        ]
+
     async def _kpis_and_docentes(
-        self, modalidad: str | None = None
+        self,
+        modalidad: str | None = None,
+        escuela: str | None = None,
     ) -> tuple[DashboardKpis, list[dict]]:
         """Fetch KPIs and per-docente averages in two queries."""
         # 1. Global KPIs
@@ -60,6 +80,7 @@ class DashboardService:
         eval_filter = [Evaluacion.estado == "completado"]
         if modalidad:
             eval_filter.append(Evaluacion.modalidad == modalidad)
+        eval_filter.extend(self._escuela_filter(escuela))
 
         if modalidad:
             # Count only documents that have at least one evaluacion with this modalidad
@@ -98,7 +119,13 @@ class DashboardService:
             for r in rows
         ]
 
-        alertas_count = sum(1 for d in docente_rows if d["promedio"] < _ALERT_THRESHOLD)
+        # Count real active alerts from the alertas table (all severities + modalidades)
+        alert_filters = [Alerta.estado == "activa"]
+        if modalidad:
+            alert_filters.append(Alerta.modalidad == modalidad)
+        alertas_count = (
+            await self.db.execute(select(func.count(Alerta.id)).where(*alert_filters))
+        ).scalar() or 0
 
         kpis = DashboardKpis(
             documentos_procesados=docs_processed,
@@ -135,10 +162,13 @@ class DashboardService:
             if r.get("docente_nombre")
         ]
 
-    async def _tendencia(self, modalidad: str | None = None) -> list[dict]:
+    async def _tendencia(
+        self, modalidad: str | None = None, escuela: str | None = None
+    ) -> list[dict]:
         eval_filter = [Evaluacion.estado == "completado"]
         if modalidad:
             eval_filter.append(Evaluacion.modalidad == modalidad)
+        eval_filter.extend(self._escuela_filter(escuela))
         stmt = (
             select(
                 Evaluacion.periodo,
@@ -163,11 +193,24 @@ class DashboardService:
         ]
         return sort_periodos(unsorted)  # [BR-AN-40]
 
-    async def _insights(self, modalidad: str | None = None) -> list[InsightItem]:
+    async def _insights(
+        self, modalidad: str | None = None, escuela: str | None = None
+    ) -> list[InsightItem]:
         insights: list[InsightItem] = []
 
-        # Build base filter: optionally join through Evaluacion for modalidad
-        if modalidad:
+        # Build base filter: optionally join through Evaluacion for modalidad/escuela
+        needs_join = bool(modalidad or escuela)
+        if needs_join:
+            join_filters = [Evaluacion.modalidad == modalidad] if modalidad else []
+            if escuela:
+                join_filters.append(
+                    select(EvaluacionCurso.evaluacion_id)
+                    .where(
+                        EvaluacionCurso.evaluacion_id == Evaluacion.id,
+                        EvaluacionCurso.escuela == escuela,
+                    )
+                    .exists()
+                )
             base_join = (
                 select(
                     ComentarioAnalisis.id,
@@ -177,7 +220,7 @@ class DashboardService:
                     ComentarioAnalisis.procesado_ia,
                 )
                 .join(Evaluacion, ComentarioAnalisis.evaluacion_id == Evaluacion.id)
-                .where(Evaluacion.modalidad == modalidad)
+                .where(*join_filters)
                 .subquery("ca")
             )
             total_stmt = select(func.count(base_join.c.id))

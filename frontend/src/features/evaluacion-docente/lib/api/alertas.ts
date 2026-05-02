@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api-client";
-import { buildQuery } from "@/features/evaluacion-docente/lib/api/query-builder";
+import { buildQuery } from "@/lib/query-builder";
 import type {
   AlertaResponse,
   AlertaSummary,

@@ -1,8 +1,8 @@
 """Analytics / BI dashboard endpoints.
 
-Analytical endpoints **require** a ``modalidad`` parameter to enforce the
-fundamental isolation rule [BR-MOD-02].  Dropdown-population endpoints
-(periodos, escuelas, cursos) keep it optional.
+All endpoints accept an **optional** ``modalidad`` parameter.  When supplied,
+it is validated via ``require_modalidad`` [BR-MOD-02] to ensure only known
+values are used.  When omitted, data from **all** modalidades is returned.
 """
 
 from fastapi import APIRouter, Query
@@ -59,12 +59,12 @@ async def listar_cursos(
 async def resumen_general(
     db: DbSession,
     periodo: str | None = Query(None, description="Filtrar por período"),
-    modalidad: str = Query(..., description="Modalidad (obligatorio) [BR-MOD-02]"),
+    modalidad: str | None = Query(None, description="Filtrar por modalidad [BR-MOD-02]"),
     escuela: str | None = Query(None, description="Filtrar por escuela"),
     curso: str | None = Query(None, description="Filtrar por curso"),
 ):
     """Tarjetas resumen del dashboard: promedio global, totales."""
-    mod = require_modalidad(modalidad)
+    mod = require_modalidad(modalidad) if modalidad else None
     svc = AnalyticsService(db)
     return await svc.resumen(periodo=periodo, modalidad=mod, escuela=escuela, curso=curso)
 
@@ -73,14 +73,14 @@ async def resumen_general(
 async def promedios_por_docente(
     db: DbSession,
     periodo: str | None = Query(None),
-    modalidad: str = Query(..., description="Modalidad (obligatorio) [BR-MOD-02]"),
+    modalidad: str | None = Query(None, description="Filtrar por modalidad [BR-MOD-02]"),
     escuela: str | None = Query(None, description="Filtrar por escuela"),
     curso: str | None = Query(None, description="Filtrar por curso"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
     """Promedio ponderado por docente."""
-    mod = require_modalidad(modalidad)
+    mod = require_modalidad(modalidad) if modalidad else None
     svc = AnalyticsService(db)
     return await svc.promedios_docentes(
         periodo=periodo,
@@ -97,12 +97,12 @@ async def promedios_por_dimension(
     db: DbSession,
     periodo: str | None = Query(None),
     docente: str | None = Query(None),
-    modalidad: str = Query(..., description="Modalidad (obligatorio) [BR-MOD-02]"),
+    modalidad: str | None = Query(None, description="Filtrar por modalidad [BR-MOD-02]"),
     escuela: str | None = Query(None, description="Filtrar por escuela"),
     curso: str | None = Query(None, description="Filtrar por curso"),
 ):
     """Promedios por dimensión (para gráfico radar)."""
-    mod = require_modalidad(modalidad)
+    mod = require_modalidad(modalidad) if modalidad else None
     svc = AnalyticsService(db)
     return await svc.dimensiones(
         periodo=periodo,
@@ -117,12 +117,12 @@ async def promedios_por_dimension(
 async def evolucion_periodos(
     db: DbSession,
     docente: str | None = Query(None),
-    modalidad: str = Query(..., description="Modalidad (obligatorio) [BR-MOD-02]"),
+    modalidad: str | None = Query(None, description="Filtrar por modalidad [BR-MOD-02]"),
     escuela: str | None = Query(None, description="Filtrar por escuela"),
     curso: str | None = Query(None, description="Filtrar por curso"),
 ):
     """Tendencia histórica: promedio por período."""
-    mod = require_modalidad(modalidad)
+    mod = require_modalidad(modalidad) if modalidad else None
     svc = AnalyticsService(db)
     return await svc.evolucion(
         docente=docente,
@@ -136,13 +136,13 @@ async def evolucion_periodos(
 async def ranking_docentes(
     db: DbSession,
     periodo: str | None = Query(None),
-    modalidad: str = Query(..., description="Modalidad (obligatorio) [BR-MOD-02]"),
+    modalidad: str | None = Query(None, description="Filtrar por modalidad [BR-MOD-02]"),
     escuela: str | None = Query(None, description="Filtrar por escuela"),
     curso: str | None = Query(None, description="Filtrar por curso"),
     limit: int = Query(10, ge=1, le=100),
 ):
     """Ranking de docentes por promedio general."""
-    mod = require_modalidad(modalidad)
+    mod = require_modalidad(modalidad) if modalidad else None
     svc = AnalyticsService(db)
     return await svc.ranking(
         periodo=periodo,

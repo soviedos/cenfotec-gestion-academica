@@ -34,16 +34,17 @@ class TestDetectTema:
 
 
 class TestQuerySchemas:
-    def test_query_request_requires_filters(self):
-        with pytest.raises(Exception):
-            QueryRequest(question="¿Cómo enseña García?")
+    def test_query_request_without_filters_defaults_empty(self):
+        req = QueryRequest(question="¿Cómo enseña García?")
+        assert req.filters.modalidad is None
 
-    def test_query_request_requires_modalidad_in_filters(self):
-        with pytest.raises(Exception):
-            QueryRequest(
-                question="¿Cómo enseña García?",
-                filters=QueryFilters(periodo="2025-1"),
-            )
+    def test_query_request_without_modalidad_is_valid(self):
+        req = QueryRequest(
+            question="¿Cómo enseña García?",
+            filters=QueryFilters(periodo="2025-1"),
+        )
+        assert req.filters.modalidad is None
+        assert req.filters.periodo == "2025-1"
 
     def test_query_request_with_filters(self):
         req = QueryRequest(

@@ -9,6 +9,8 @@ from app.modules.evaluacion_docente.application.services.document_service import
 from app.modules.evaluacion_docente.application.services.processing_service import ProcessingService
 from app.modules.evaluacion_docente.domain.exceptions import GeminiUnavailableError
 from app.modules.evaluacion_docente.domain.schemas.documento import (
+    BulkDeleteRequest,
+    BulkDeleteResponse,
     DocumentoFilterParams,
     DocumentoList,
     DocumentoUploadResponse,
@@ -83,6 +85,26 @@ async def delete_documento(
     service = DocumentService(repo, storage)
     await service.delete_document(doc_uuid)
     await db.commit()
+
+
+@router.post("/bulk-delete", response_model=BulkDeleteResponse)
+async def bulk_delete_documentos(
+    body: BulkDeleteRequest,
+    db: DbSession,
+    storage: FileStorageDep,
+):
+    """Eliminar varios documentos de una sola vez."""
+    repo = DocumentoRepository(db)
+    service = DocumentService(repo, storage)
+    deleted = 0
+    for doc_id in body.ids:
+        try:
+            await service.delete_document(doc_id)
+            deleted += 1
+        except Exception:
+            pass  # skip documents that don't exist or fail
+    await db.commit()
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{documento_id}/duplicados", response_model=list[DuplicadoRead])

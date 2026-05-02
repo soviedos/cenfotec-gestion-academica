@@ -61,12 +61,6 @@ export function useAnalytics(filters: AnalyticsFilters = {}) {
     try {
       const f = filtersRef.current;
 
-      // modalidad is required by the backend (BR-MOD-02)
-      if (!f.modalidad) {
-        setState({ ...INITIAL, isLoading: false });
-        return;
-      }
-
       // Fire all requests in parallel but settle progressively
       const resumenP = fetchResumen(
         f.periodo,

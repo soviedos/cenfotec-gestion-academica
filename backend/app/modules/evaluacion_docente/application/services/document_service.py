@@ -94,8 +94,22 @@ class DocumentService:
             nombre_archivo=filters.nombre_archivo,
             posible_duplicado=filters.posible_duplicado,
         )
+
+        # Enrich with Gemini coverage stats
+        coverage = await self.repo.gemini_coverage([d.id for d in items])
+        enriched = []
+        for doc in items:
+            total_c, ia_c = coverage.get(doc.id, (0, 0))
+            enriched.append(
+                {
+                    **{c.key: getattr(doc, c.key) for c in doc.__table__.columns},
+                    "comentarios_total": total_c,
+                    "comentarios_ia": ia_c,
+                }
+            )
+
         return {
-            "items": items,
+            "items": enriched,
             "total": total,
             "page": filters.page,
             "page_size": filters.page_size,

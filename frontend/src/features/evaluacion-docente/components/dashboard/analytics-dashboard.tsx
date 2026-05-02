@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BarChart3, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { useAnalytics } from "@/features/evaluacion-docente/hooks/use-analytics";
 import {
+  fetchPeriodos,
   fetchEscuelas,
   fetchCursos,
 } from "@/features/evaluacion-docente/lib/api/analytics";
@@ -18,17 +19,19 @@ import {
   DashboardEmpty,
   DashboardError,
 } from "@/features/evaluacion-docente/components/dashboard/dashboard-states";
-import type { Modalidad } from "@/features/evaluacion-docente/types";
+import type {
+  Modalidad,
+  PeriodoOption,
+} from "@/features/evaluacion-docente/types";
 
 export function AnalyticsDashboard() {
-  const [modalidad, setModalidad] = useState<Modalidad | undefined>(
-    "CUATRIMESTRAL",
-  );
+  const [modalidad, setModalidad] = useState<Modalidad | undefined>();
   const [periodo, setPeriodo] = useState<string | undefined>();
   const [escuela, setEscuela] = useState<string | undefined>();
   const [curso, setCurso] = useState<string | undefined>();
   const [escuelas, setEscuelas] = useState<string[]>([]);
   const [cursos, setCursos] = useState<string[]>([]);
+  const [periodos, setPeriodos] = useState<PeriodoOption[]>([]);
 
   const {
     resumen,
@@ -41,6 +44,15 @@ export function AnalyticsDashboard() {
     isEmpty,
     refetch,
   } = useAnalytics({ periodo, modalidad, escuela, curso });
+
+  // Fetch all periodos once on mount (independent of modalidad filter)
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPeriodos({}, controller.signal)
+      .then(setPeriodos)
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   // Fetch escuelas when modalidad/periodo change
   useEffect(() => {
@@ -65,17 +77,6 @@ export function AnalyticsDashboard() {
     setEscuela(v);
     setCurso(undefined);
   };
-
-  const periodos = useMemo(
-    () =>
-      evolucion.map((e) => ({
-        periodo: e.periodo,
-        modalidad: e.modalidad ?? "",
-        año: e.año,
-        periodo_orden: e.periodo_orden,
-      })),
-    [evolucion],
-  );
 
   if (isLoading && !resumen) {
     return <DashboardSkeleton />;

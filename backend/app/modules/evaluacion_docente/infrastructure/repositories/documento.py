@@ -1,7 +1,10 @@
 """Documento repository — persistence operations for uploaded PDFs."""
 
-from sqlalchemy import func, select
+import uuid
 
+from sqlalchemy import case, func, select
+
+from app.modules.evaluacion_docente.domain.entities.comentario_analisis import ComentarioAnalisis
 from app.modules.evaluacion_docente.domain.entities.documento import Documento
 from app.modules.evaluacion_docente.domain.entities.evaluacion import Evaluacion
 from app.shared.infrastructure.repositories.base import BaseRepository
@@ -81,6 +84,23 @@ class DocumentoRepository(BaseRepository[Documento]):
         )
         result = await self.session.execute(stmt)
         return result.scalar_one()
+
+    async def gemini_coverage(self, doc_ids: list[uuid.UUID]) -> dict[uuid.UUID, tuple[int, int]]:
+        """Return {documento_id: (total_comments, ia_comments)} for given IDs."""
+        if not doc_ids:
+            return {}
+        stmt = (
+            select(
+                Evaluacion.documento_id,
+                func.count().label("total"),
+                func.sum(case((ComentarioAnalisis.procesado_ia.is_(True), 1), else_=0)).label("ia"),
+            )
+            .join(ComentarioAnalisis, ComentarioAnalisis.evaluacion_id == Evaluacion.id)
+            .where(Evaluacion.documento_id.in_(doc_ids))
+            .group_by(Evaluacion.documento_id)
+        )
+        rows = await self.session.execute(stmt)
+        return {row.documento_id: (row.total, int(row.ia)) for row in rows}
 
     @staticmethod
     def _apply_filters(

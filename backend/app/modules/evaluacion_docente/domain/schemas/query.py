@@ -11,19 +11,19 @@ from app.shared.domain.schemas.common import BaseSchema
 # ── Request ──────────────────────────────────────────────────────────────
 
 
-class QueryRequest(BaseModel):
-    """User's natural-language question with optional filters."""
-
-    question: str = Field(..., min_length=3, max_length=1000)
-    filters: QueryFilters = Field(..., description="Filtros (modalidad obligatorio) [BR-MOD-02]")
-
-
 class QueryFilters(BaseModel):
-    modalidad: str = Field(..., description="Modalidad (obligatorio) [BR-MOD-02]")
+    modalidad: str | None = Field(None, description="Modalidad (opcional)")
     periodo: str | None = None
     docente: str | None = None
     asignatura: str | None = None
     escuela: str | None = None
+
+
+class QueryRequest(BaseModel):
+    """User's natural-language question with optional filters."""
+
+    question: str = Field(..., min_length=3, max_length=1000)
+    filters: QueryFilters = Field(default_factory=QueryFilters, description="Filtros opcionales")
 
 
 # ── Evidence items ───────────────────────────────────────────────────────

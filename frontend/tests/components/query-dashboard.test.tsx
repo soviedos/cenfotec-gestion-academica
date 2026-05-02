@@ -74,7 +74,7 @@ describe("QueryDashboard", () => {
     expect(mockedPostQuery).toHaveBeenCalledWith(
       {
         question: "¿Cuál es el promedio?",
-        filters: { modalidad: "CUATRIMESTRAL" },
+        filters: {},
       },
       expect.any(AbortSignal),
     );

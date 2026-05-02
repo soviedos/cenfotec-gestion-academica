@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.evaluacion_docente.application.classification import classify_comment
 from app.modules.evaluacion_docente.application.parsing.errors import ParseResult
 from app.modules.evaluacion_docente.application.parsing.parser import parse_evaluacion
+from app.modules.evaluacion_docente.application.services.alert_engine import AlertEngine
 from app.modules.evaluacion_docente.application.services.duplicate_detection_service import (
     DuplicateDetectionService,
 )
@@ -150,6 +151,22 @@ class ProcessingService:
                 except Exception:
                     logger.warning(
                         "Gemini enrichment failed for doc %s (keyword results kept)",
+                        documento_id,
+                        exc_info=True,
+                    )
+
+            # ── Step 7: Rebuild alerts (best-effort) ────────────────
+            if result.success:
+                try:
+                    alert_result = await AlertEngine(self.db).run_all()
+                    logger.info(
+                        "Alert rebuild after doc %s: %d created/updated",
+                        documento_id,
+                        alert_result.created_or_updated,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Alert rebuild failed after doc %s (non-blocking)",
                         documento_id,
                         exc_info=True,
                     )

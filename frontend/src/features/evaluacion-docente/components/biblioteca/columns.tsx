@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-import { ArrowUpDown, Copy, Check, Eye, FileText, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  Copy,
+  Check,
+  Eye,
+  FileText,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { getDocumentDownloadUrl } from "@/features/evaluacion-docente/lib/api/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +32,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Documento, DocumentoEstado } from "@/features/evaluacion-docente/types";
+import type {
+  Documento,
+  DocumentoEstado,
+} from "@/features/evaluacion-docente/types";
 
 const columnHelper = createColumnHelper<Documento>();
 
@@ -215,6 +226,31 @@ function DeleteButton({
   );
 }
 
+function GeminiBadge({ total, ia }: { total: number; ia: number }) {
+  if (total === 0)
+    return <span className="text-xs text-muted-foreground">—</span>;
+  const pct = Math.round((ia / total) * 100);
+  const variant: "default" | "secondary" | "destructive" | "outline" =
+    pct === 100 ? "default" : pct > 0 ? "secondary" : "outline";
+  return (
+    <TooltipProvider delay={200}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Badge variant={variant} className="gap-1">
+              <Sparkles className="h-3 w-3" />
+              {ia}/{total}
+            </Badge>
+          }
+        />
+        <TooltipContent side="top">
+          {pct}% analizado por Gemini ({ia} de {total} comentarios)
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function getColumns(
   sortBy: string,
   sortOrder: string,
@@ -222,6 +258,28 @@ export function getColumns(
   onDelete?: (id: string) => void,
 ) {
   return [
+    columnHelper.display({
+      id: "select",
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-input accent-primary"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+          aria-label="Seleccionar todos"
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-input accent-primary"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          aria-label={`Seleccionar ${row.original.nombre_archivo}`}
+        />
+      ),
+      size: 40,
+    }),
     columnHelper.display({
       id: "icon",
       cell: () => <FileText className="h-4 w-4 text-muted-foreground" />,
@@ -255,6 +313,17 @@ export function getColumns(
         </div>
       ),
       size: 200,
+    }),
+    columnHelper.display({
+      id: "gemini",
+      header: "Gemini",
+      cell: (info) => (
+        <GeminiBadge
+          total={info.row.original.comentarios_total}
+          ia={info.row.original.comentarios_ia}
+        />
+      ),
+      size: 120,
     }),
     columnHelper.accessor("tamano_bytes", {
       header: () => (

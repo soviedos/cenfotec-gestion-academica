@@ -4,6 +4,7 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import { Loader2, Library } from "lucide-react";
 import {
@@ -25,6 +26,8 @@ interface DocumentTableProps {
   sortOrder: string;
   onSort: (field: string) => void;
   onDelete?: (id: string) => void;
+  rowSelection: RowSelectionState;
+  onRowSelectionChange: (selection: RowSelectionState) => void;
 }
 
 export function DocumentTable({
@@ -35,6 +38,8 @@ export function DocumentTable({
   sortOrder,
   onSort,
   onDelete,
+  rowSelection,
+  onRowSelectionChange,
 }: DocumentTableProps) {
   const columns = getColumns(sortBy, sortOrder, onSort, onDelete);
 
@@ -43,6 +48,13 @@ export function DocumentTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    state: { rowSelection },
+    onRowSelectionChange: (updater) => {
+      const next =
+        typeof updater === "function" ? updater(rowSelection) : updater;
+      onRowSelectionChange(next);
+    },
+    enableRowSelection: true,
   });
 
   return (

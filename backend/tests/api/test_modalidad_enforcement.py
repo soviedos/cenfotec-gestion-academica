@@ -1,8 +1,8 @@
-"""BR-MOD-02 enforcement tests — mandatory modalidad on analytical endpoints.
+"""BR-MOD-02 enforcement tests — modalidad validation on analytical endpoints.
 
-These tests verify that ALL analytical endpoints return HTTP 422 when:
-  1. ``modalidad`` is missing entirely
-  2. ``modalidad`` is an invalid value (e.g. DESCONOCIDA, random string)
+Analytics endpoints accept **optional** modalidad (missing → returns all data).
+Qualitative and alertas endpoints still **require** modalidad.
+All endpoints reject **invalid** modalidad values (e.g. DESCONOCIDA).
 
 Dropdown-population endpoints (/periodos, /escuelas, /cursos, /filtros)
 are explicitly verified to still work WITHOUT modalidad.
@@ -11,7 +11,7 @@ are explicitly verified to still work WITHOUT modalidad.
 import pytest
 
 # ---------------------------------------------------------------------------
-# Analytical endpoints that MUST require modalidad
+# Analytical endpoints — modalidad is OPTIONAL (missing → all data)
 # ---------------------------------------------------------------------------
 
 _ANALYTICS_ENDPOINTS = [
@@ -21,6 +21,10 @@ _ANALYTICS_ENDPOINTS = [
     "/api/v1/analytics/evolucion",
     "/api/v1/analytics/ranking",
 ]
+
+# ---------------------------------------------------------------------------
+# Endpoints that still REQUIRE modalidad
+# ---------------------------------------------------------------------------
 
 _QUALITATIVE_ENDPOINTS = [
     "/api/v1/qualitative/resumen",
@@ -35,10 +39,22 @@ _ALERTA_ENDPOINTS = [
     "/api/v1/alertas/summary",
 ]
 
-_ALL_MANDATORY = _ANALYTICS_ENDPOINTS + _QUALITATIVE_ENDPOINTS + _ALERTA_ENDPOINTS
+_ALL_MANDATORY = _QUALITATIVE_ENDPOINTS + _ALERTA_ENDPOINTS
+_ALL_VALIDATED = _ANALYTICS_ENDPOINTS + _QUALITATIVE_ENDPOINTS + _ALERTA_ENDPOINTS
 
 
-# ── Missing modalidad → 422 ─────────────────────────────────────────────
+# ── Analytics: missing modalidad → 200 (returns all data) ────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", _ANALYTICS_ENDPOINTS)
+async def test_analytics_without_modalidad_returns_200(client, endpoint):
+    """Analytics endpoints work without modalidad (returns all data)."""
+    resp = await client.get(endpoint)
+    assert resp.status_code == 200, f"{endpoint} should return 200 without modalidad"
+
+
+# ── Mandatory endpoints: missing modalidad → 422 ─────────────────────
 
 
 @pytest.mark.asyncio
@@ -49,11 +65,11 @@ async def test_missing_modalidad_returns_422(client, endpoint):
     assert resp.status_code == 422, f"{endpoint} should return 422 without modalidad"
 
 
-# ── Invalid modalidad → 422 ─────────────────────────────────────────────
+# ── Invalid modalidad → 422 (all endpoints) ─────────────────────────────
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("endpoint", _ALL_MANDATORY)
+@pytest.mark.parametrize("endpoint", _ALL_VALIDATED)
 async def test_invalid_modalidad_returns_422(client, endpoint):
     """Invalid modalidad values must be rejected."""
     resp = await client.get(endpoint, params={"modalidad": "DESCONOCIDA"})
@@ -61,18 +77,18 @@ async def test_invalid_modalidad_returns_422(client, endpoint):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("endpoint", _ALL_MANDATORY)
+@pytest.mark.parametrize("endpoint", _ALL_VALIDATED)
 async def test_random_modalidad_returns_422(client, endpoint):
     """Random strings as modalidad must be rejected."""
     resp = await client.get(endpoint, params={"modalidad": "FOO_BAR"})
     assert resp.status_code == 422, f"{endpoint} should reject arbitrary strings"
 
 
-# ── Valid modalidad → 200 ───────────────────────────────────────────────
+# ── Valid modalidad → 200 (all endpoints) ────────────────────────────────
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("endpoint", _ALL_MANDATORY)
+@pytest.mark.parametrize("endpoint", _ALL_VALIDATED)
 async def test_valid_modalidad_returns_200(client, endpoint):
     """Endpoints must accept valid modalidad values (empty DB → 200)."""
     resp = await client.get(endpoint, params={"modalidad": "CUATRIMESTRAL"})
@@ -109,26 +125,5 @@ async def test_dropdown_endpoints_work_without_modalidad(client, endpoint):
 
 
 # ── Query endpoint (POST) ──────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_query_without_filters_returns_422(client):
-    """POST /query without filters (thus no modalidad) must return 422."""
-    resp = await client.post(
-        "/api/v1/query",
-        json={"question": "¿Cómo enseña el Prof. García?"},
-    )
-    assert resp.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_query_with_invalid_modalidad_returns_422(client):
-    """POST /query with invalid modalidad must return 422."""
-    resp = await client.post(
-        "/api/v1/query",
-        json={
-            "question": "¿Cómo enseña el Prof. García?",
-            "filters": {"modalidad": "DESCONOCIDA"},
-        },
-    )
-    assert resp.status_code == 422
+# Modalidad is fully optional for the query endpoint — Gemini accesses
+# all data by default, so no enforcement tests are needed here.

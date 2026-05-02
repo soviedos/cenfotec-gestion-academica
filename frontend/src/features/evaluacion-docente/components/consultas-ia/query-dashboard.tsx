@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import {
   Card,
@@ -9,16 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useQuery } from "@/features/evaluacion-docente/hooks/use-query";
-import { DEFAULT_MODALIDAD, MODALIDADES } from "@/features/evaluacion-docente/lib/business-rules";
-import type { Modalidad } from "@/features/evaluacion-docente/types";
 import { QueryInput } from "./query-input";
 import { QueryResponseCard } from "./query-response";
 import { QueryEvidenceList } from "./query-evidence";
@@ -26,9 +16,7 @@ import { QueryHistory } from "./query-history";
 import { QuerySkeleton, QueryError } from "./query-states";
 
 export function QueryDashboard() {
-  const [modalidad, setModalidad] = useState<Modalidad>(DEFAULT_MODALIDAD);
-  const { response, isLoading, error, history, ask, clear } =
-    useQuery(modalidad);
+  const { response, isLoading, error, history, ask, clear } = useQuery();
 
   return (
     <div className="space-y-6">
@@ -46,21 +34,6 @@ export function QueryDashboard() {
                 recopilada de las evaluaciones.
               </CardDescription>
             </div>
-            <Select
-              value={modalidad}
-              onValueChange={(v) => setModalidad(v as Modalidad)}
-            >
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODALIDADES.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent>

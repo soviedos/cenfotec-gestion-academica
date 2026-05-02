@@ -94,6 +94,7 @@ vi.mock("@/features/evaluacion-docente/lib/api/analytics", () => ({
   fetchRanking: vi.fn(),
   fetchEscuelas: vi.fn(),
   fetchCursos: vi.fn(),
+  fetchPeriodos: vi.fn(),
 }));
 
 import {
@@ -104,6 +105,7 @@ import {
   fetchRanking,
   fetchEscuelas,
   fetchCursos,
+  fetchPeriodos,
 } from "@/features/evaluacion-docente/lib/api/analytics";
 
 const mockedFetchResumen = vi.mocked(fetchResumen);
@@ -113,10 +115,25 @@ const mockedFetchEvolucion = vi.mocked(fetchEvolucion);
 const mockedFetchRanking = vi.mocked(fetchRanking);
 const mockedFetchEscuelas = vi.mocked(fetchEscuelas);
 const mockedFetchCursos = vi.mocked(fetchCursos);
+const mockedFetchPeriodos = vi.mocked(fetchPeriodos);
 
 function setupMocks(overrides?: { empty?: boolean }) {
   mockedFetchEscuelas.mockResolvedValue(["Escuela de Ingeniería"]);
   mockedFetchCursos.mockResolvedValue(["Programación I"]);
+  mockedFetchPeriodos.mockResolvedValue([
+    {
+      periodo: "C1 2025",
+      modalidad: "CUATRIMESTRAL",
+      año: 2025,
+      periodo_orden: 1,
+    },
+    {
+      periodo: "C2 2025",
+      modalidad: "CUATRIMESTRAL",
+      año: 2025,
+      periodo_orden: 2,
+    },
+  ]);
   if (overrides?.empty) {
     mockedFetchResumen.mockResolvedValue({
       promedio_global: 0,
@@ -151,6 +168,7 @@ describe("AnalyticsDashboard", () => {
     mockedFetchRanking.mockReturnValue(new Promise(() => {}));
     mockedFetchEscuelas.mockResolvedValue([]);
     mockedFetchCursos.mockResolvedValue([]);
+    mockedFetchPeriodos.mockResolvedValue([]);
 
     const { container } = render(<AnalyticsDashboard />);
     const pulseElements = container.querySelectorAll(".animate-pulse");
@@ -195,6 +213,7 @@ describe("AnalyticsDashboard", () => {
     mockedFetchRanking.mockRejectedValue(new Error("Network error"));
     mockedFetchEscuelas.mockResolvedValue([]);
     mockedFetchCursos.mockResolvedValue([]);
+    mockedFetchPeriodos.mockResolvedValue([]);
 
     render(<AnalyticsDashboard />);
     await waitFor(() => {
@@ -215,15 +234,22 @@ describe("AnalyticsDashboard", () => {
     setupMocks();
     render(<AnalyticsDashboard />);
 
-    // Default modalidad is CUATRIMESTRAL, so periods should appear right away
+    // Wait for initial load (no modalidad selected → all data shown)
+    await waitFor(() => {
+      expect(screen.getByText("87.5%")).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+
+    // Click Cuatrimestral to select it → period buttons appear
+    await user.click(screen.getByText("Cuatrimestral"));
     await waitFor(() => {
       expect(screen.getByText("C1 2025")).toBeInTheDocument();
     });
 
-    const user = userEvent.setup();
     await user.click(screen.getByText("C1 2025"));
 
-    // After clicking, fetchResumen should have been called again with periodo
+    // After clicking, fetchResumen should have been called with periodo + modalidad
     await waitFor(() => {
       expect(mockedFetchResumen).toHaveBeenCalledWith(
         "C1 2025",

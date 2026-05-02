@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postQuery } from "@/features/evaluacion-docente/lib/api/query";
 import type {
-  Modalidad,
   QueryHistoryEntry,
   QueryResponse,
 } from "@/features/evaluacion-docente/types";
@@ -37,7 +36,7 @@ function saveHistory(history: QueryHistoryEntry[]): void {
   }
 }
 
-export function useQuery(modalidad: Modalidad) {
+export function useQuery() {
   const [state, setState] = useState<QueryState>(() => ({
     response: null,
     isLoading: false,
@@ -51,41 +50,38 @@ export function useQuery(modalidad: Modalidad) {
     saveHistory(state.history);
   }, [state.history]);
 
-  const ask = useCallback(
-    async (question: string) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+  const ask = useCallback(async (question: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-      try {
-        const response = await postQuery(
-          { question, filters: { modalidad } },
-          controller.signal,
-        );
+    try {
+      const response = await postQuery(
+        { question, filters: {} },
+        controller.signal,
+      );
 
-        const entry: QueryHistoryEntry = {
-          question,
-          response,
-          timestamp: new Date(),
-        };
+      const entry: QueryHistoryEntry = {
+        question,
+        response,
+        timestamp: new Date(),
+      };
 
-        setState((prev) => ({
-          response,
-          isLoading: false,
-          error: null,
-          history: [entry, ...prev.history],
-        }));
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        const message =
-          err instanceof Error ? err.message : "Error al procesar la consulta";
-        setState((prev) => ({ ...prev, isLoading: false, error: message }));
-      }
-    },
-    [modalidad],
-  );
+      setState((prev) => ({
+        response,
+        isLoading: false,
+        error: null,
+        history: [entry, ...prev.history],
+      }));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      const message =
+        err instanceof Error ? err.message : "Error al procesar la consulta";
+      setState((prev) => ({ ...prev, isLoading: false, error: message }));
+    }
+  }, []);
 
   const clear = useCallback(() => {
     setState((prev) => ({ ...prev, response: null, error: null }));

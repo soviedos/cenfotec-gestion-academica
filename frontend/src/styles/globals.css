@@ -124,3 +124,10 @@
     @apply font-sans;
   }
 }
+
+/* Force radar chart polygons to have no fill */
+.recharts-radar-polygon path,
+.recharts-polar-grid-concentric-polygon,
+.recharts-polar-grid-concentric path {
+  fill: none !important;
+}

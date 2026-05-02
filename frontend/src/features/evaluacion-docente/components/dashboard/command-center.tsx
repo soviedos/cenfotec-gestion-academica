@@ -110,6 +110,39 @@ function ModalidadSelector({
   );
 }
 
+// ── Escuela Selector ────────────────────────────────────────────
+
+function EscuelaSelector({
+  value,
+  onChange,
+  escuelas,
+}: {
+  value: string | null;
+  onChange: (e: string | null) => void;
+  escuelas: string[];
+}) {
+  if (escuelas.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Filter className="size-4 text-muted-foreground" />
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+        aria-label="Filtro de escuela"
+      >
+        <option value="">Todas las escuelas</option>
+        {escuelas.map((esc) => (
+          <option key={esc} value={esc}>
+            {esc}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // ── KPI Cards [VZ-01] ──────────────────────────────────────────
 
 function KpiCard({
@@ -145,10 +178,57 @@ function KpiCard({
 
 // ── Alert Summary Mini-Cards ────────────────────────────────────
 
-function AlertSummaryBar({ summary }: { summary: AlertaSummary }) {
+function AlertSummaryBar({
+  summary,
+  selected,
+  onSelect,
+}: {
+  summary: AlertaSummary;
+  selected: Severidad | null;
+  onSelect: (s: Severidad | null) => void;
+}) {
   const alta = summary.por_severidad.alta ?? 0;
   const media = summary.por_severidad.media ?? 0;
   const baja = summary.por_severidad.baja ?? 0;
+
+  const cards: {
+    key: Severidad;
+    count: number;
+    border: string;
+    bg: string;
+    activeBg: string;
+    text: string;
+  }[] = [
+    {
+      key: "alta",
+      count: alta,
+      border: "border-red-500/20",
+      bg: "bg-red-500/5",
+      activeBg: "bg-red-500/20 ring-2 ring-red-500/40",
+      text: "text-red-600",
+    },
+    {
+      key: "media",
+      count: media,
+      border: "border-amber-500/20",
+      bg: "bg-amber-500/5",
+      activeBg: "bg-amber-500/20 ring-2 ring-amber-500/40",
+      text: "text-amber-600",
+    },
+    {
+      key: "baja",
+      count: baja,
+      border: "border-border",
+      bg: "bg-muted/30",
+      activeBg: "bg-muted/60 ring-2 ring-border",
+      text: "text-muted-foreground",
+    },
+  ];
+  const labels: Record<Severidad, string> = {
+    alta: "Alta",
+    media: "Media",
+    baja: "Baja",
+  };
 
   return (
     <Card>
@@ -166,18 +246,17 @@ function AlertSummaryBar({ summary }: { summary: AlertaSummary }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center">
-            <p className="text-2xl font-bold text-red-600">{alta}</p>
-            <p className="text-xs text-muted-foreground">Alta</p>
-          </div>
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-center">
-            <p className="text-2xl font-bold text-amber-600">{media}</p>
-            <p className="text-xs text-muted-foreground">Media</p>
-          </div>
-          <div className="rounded-lg border bg-muted/30 p-3 text-center">
-            <p className="text-2xl font-bold text-muted-foreground">{baja}</p>
-            <p className="text-xs text-muted-foreground">Baja</p>
-          </div>
+          {cards.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => onSelect(selected === c.key ? null : c.key)}
+              className={`cursor-pointer rounded-lg border p-3 text-center transition-all ${c.border} ${selected === c.key ? c.activeBg : c.bg} hover:opacity-80`}
+            >
+              <p className={`text-2xl font-bold ${c.text}`}>{c.count}</p>
+              <p className="text-xs text-muted-foreground">{labels[c.key]}</p>
+            </button>
+          ))}
         </div>
 
         {/* Distribution by type */}
@@ -197,21 +276,41 @@ function AlertSummaryBar({ summary }: { summary: AlertaSummary }) {
 
 // ── Critical Alerts Panel [AL-01, BR-FE-20] ────────────────────
 
-function CriticalAlertsPanel({ alerts }: { alerts: AlertaResponse[] }) {
+const SEVERIDAD_LABEL: Record<Severidad, string> = {
+  alta: "Alta",
+  media: "Media",
+  baja: "Baja",
+};
+
+function CriticalAlertsPanel({
+  alerts,
+  severidadFilter,
+}: {
+  alerts: AlertaResponse[];
+  severidadFilter?: Severidad | null;
+}) {
+  const filterLabel = severidadFilter
+    ? ` · Severidad: ${SEVERIDAD_LABEL[severidadFilter]}`
+    : "";
+
   if (alerts.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <AlertTriangle className="size-4 text-amber-500" />
-            Alertas críticas
+            Alertas{filterLabel}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <CheckCircle2 className="size-8 text-emerald-500" />
             <p className="text-sm text-muted-foreground">
-              No hay alertas críticas activas.
+              No hay alertas
+              {severidadFilter
+                ? ` de severidad ${SEVERIDAD_LABEL[severidadFilter].toLowerCase()}`
+                : " activas"}
+              .
             </p>
           </div>
         </CardContent>
@@ -224,7 +323,7 @@ function CriticalAlertsPanel({ alerts }: { alerts: AlertaResponse[] }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <AlertTriangle className="size-4 text-red-500" />
-          Alertas críticas ({alerts.length})
+          Alertas ({alerts.length}){filterLabel}
         </CardTitle>
         <CardDescription>
           Ordenadas por puntaje más bajo primero
@@ -618,6 +717,11 @@ export function CommandCenter() {
     error,
     modalidad,
     setModalidad,
+    escuela,
+    setEscuela,
+    escuelas,
+    severidadFilter,
+    setSeveridadFilter,
     refetch,
   } = useCommandCenter();
 
@@ -627,7 +731,14 @@ export function CommandCenter() {
   if (isEmpty || !dashboard) {
     return (
       <div className="space-y-6">
-        <ModalidadSelector value={modalidad} onChange={setModalidad} />
+        <div className="flex flex-wrap items-center gap-4">
+          <ModalidadSelector value={modalidad} onChange={setModalidad} />
+          <EscuelaSelector
+            value={escuela}
+            onChange={setEscuela}
+            escuelas={escuelas}
+          />
+        </div>
         <DashboardEmpty />
       </div>
     );
@@ -644,8 +755,15 @@ export function CommandCenter() {
 
   return (
     <div className="space-y-6">
-      {/* Modalidad Filter [BR-MOD-05] */}
-      <ModalidadSelector value={modalidad} onChange={setModalidad} />
+      {/* Modalidad + Escuela Filters [BR-MOD-05] */}
+      <div className="flex flex-wrap items-center gap-4">
+        <ModalidadSelector value={modalidad} onChange={setModalidad} />
+        <EscuelaSelector
+          value={escuela}
+          onChange={setEscuela}
+          escuelas={escuelas}
+        />
+      </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -686,8 +804,63 @@ export function CommandCenter() {
 
       {/* Alert Summary + Critical Alerts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {alertSummary && <AlertSummaryBar summary={alertSummary} />}
-        <CriticalAlertsPanel alerts={criticalAlerts} />
+        {alertSummary ? (
+          <AlertSummaryBar
+            summary={alertSummary}
+            selected={severidadFilter}
+            onSelect={setSeveridadFilter}
+          />
+        ) : kpis.alertas_criticas > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldAlert className="size-4 text-amber-500" />
+                Resumen de alertas
+              </CardTitle>
+              <CardDescription>
+                {kpis.alertas_criticas} alerta
+                {kpis.alertas_criticas !== 1 ? "s" : ""} activa
+                {kpis.alertas_criticas !== 1 ? "s" : ""}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <Filter className="size-6 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Seleccione una modalidad para ver el desglose de alertas.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+        {criticalAlerts.length > 0 ? (
+          <CriticalAlertsPanel
+            alerts={criticalAlerts}
+            severidadFilter={severidadFilter}
+          />
+        ) : !modalidad && kpis.alertas_criticas > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="size-4 text-amber-500" />
+                Alertas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <Filter className="size-6 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Seleccione una modalidad para ver el detalle de alertas.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <CriticalAlertsPanel
+            alerts={criticalAlerts}
+            severidadFilter={severidadFilter}
+          />
+        )}
       </div>
 
       {/* Trend Chart */}

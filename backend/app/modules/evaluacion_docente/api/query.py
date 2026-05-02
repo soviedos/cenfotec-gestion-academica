@@ -1,6 +1,6 @@
 """Intelligent query endpoint — natural-language questions over evaluation data.
 
-Requires ``filters.modalidad`` to enforce isolation rule [BR-MOD-02].
+Gemini can access all data; ``modalidad`` is an optional filter.
 """
 
 from fastapi import APIRouter, Depends
@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends
 from app.api.deps import DbSession, GeminiDep
 from app.api.rate_limit import query_rate_limiter
 from app.modules.evaluacion_docente.application.services.query_service import QueryService
-from app.modules.evaluacion_docente.domain.invariants import require_modalidad
 from app.modules.evaluacion_docente.domain.schemas.query import QueryRequest, QueryResponse
 
 router = APIRouter()
@@ -21,6 +20,5 @@ async def ask_query(
     gemini: GeminiDep,
 ):
     """Recibe una pregunta en lenguaje natural y responde con evidencia."""
-    require_modalidad(body.filters.modalidad)
     svc = QueryService(db, gemini)
     return await svc.ask(question=body.question, filters=body.filters)

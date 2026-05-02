@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -60,6 +61,19 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
     Promedio: d.pct_promedio ?? 0,
   }));
 
+  // Dynamic domain: floor to nearest 10 below the minimum value so
+  // differences between series/filters are visually amplified.
+  const domainMin = useMemo(() => {
+    const allValues = data.flatMap((d) => [
+      d.pct_estudiante ?? 0,
+      d.pct_director ?? 0,
+      d.pct_autoeval ?? 0,
+      d.pct_promedio ?? 0,
+    ]);
+    const min = Math.min(...allValues);
+    return Math.max(0, Math.floor(min / 10) * 10 - 10);
+  }, [data]);
+
   return (
     <Card>
       <CardHeader>
@@ -89,7 +103,12 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
         </div>
         <ResponsiveContainer width="100%" height={320}>
           <RadarChart data={chartData} cx="50%" cy="50%" outerRadius="75%">
-            <PolarGrid className="stroke-border" />
+            <PolarGrid
+              gridType="polygon"
+              stroke="#d1d5db"
+              fill="none"
+              fillOpacity={0}
+            />
             <PolarAngleAxis
               dataKey="dimension"
               tick={{ fontSize: 11 }}
@@ -97,7 +116,7 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
             />
             <PolarRadiusAxis
               angle={90}
-              domain={[0, 100]}
+              domain={[domainMin, 100]}
               tick={{ fontSize: 10 }}
               className="fill-muted-foreground"
             />
@@ -132,30 +151,38 @@ export function DimensionRadarChart({ data }: DimensionRadarChartProps) {
               name="Estudiante"
               dataKey="Estudiante"
               stroke={RADAR_COLORS.estudiante}
-              fill={RADAR_COLORS.estudiante}
-              fillOpacity={0.15}
+              fill="none"
+              strokeWidth={2}
+              isAnimationActive={false}
+              dot={{ r: 4, fill: RADAR_COLORS.estudiante, strokeWidth: 0 }}
             />
             <Radar
               name="Director"
               dataKey="Director"
               stroke={RADAR_COLORS.director}
-              fill={RADAR_COLORS.director}
-              fillOpacity={0.1}
+              fill="none"
+              strokeWidth={2}
+              isAnimationActive={false}
+              dot={{ r: 4, fill: RADAR_COLORS.director, strokeWidth: 0 }}
             />
             <Radar
               name="Autoeval"
               dataKey="Autoeval"
               stroke={RADAR_COLORS.autoeval}
-              fill={RADAR_COLORS.autoeval}
-              fillOpacity={0.1}
+              fill="none"
+              strokeWidth={2}
+              isAnimationActive={false}
+              dot={{ r: 4, fill: RADAR_COLORS.autoeval, strokeWidth: 0 }}
             />
             <Radar
               name="Promedio"
               dataKey="Promedio"
               stroke={RADAR_COLORS.promedio}
-              fill={RADAR_COLORS.promedio}
-              fillOpacity={0.1}
-              strokeWidth={2}
+              fill="none"
+              strokeWidth={2.5}
+              strokeDasharray="5 3"
+              isAnimationActive={false}
+              dot={{ r: 4, fill: RADAR_COLORS.promedio, strokeWidth: 0 }}
             />
           </RadarChart>
         </ResponsiveContainer>

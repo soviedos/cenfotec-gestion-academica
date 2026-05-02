@@ -10,14 +10,23 @@ PARSER_VERSION = "1.0.0"
 
 PERIODO_RE = re.compile(r"Evaluaci[oó]n\s+docente:\s*(.+)", re.IGNORECASE)
 RECINTO_RE = re.compile(r"Recinto:\s*(.+)", re.IGNORECASE)
-PROFESOR_RE = re.compile(
-    r"Profesor:\s*(.+?)\s*(?:\((\w+)\))?\s*$", re.IGNORECASE | re.MULTILINE
-)
+PROFESOR_RE = re.compile(r"Profesor:\s*(.+?)\s*(?:\((\w+)\))?\s*$", re.IGNORECASE | re.MULTILINE)
 
 # ── Metrics table identification ────────────────────────────────────────
 
 DIMENSION_HEADER_MARKERS = {"Dimensiones", "METODOLOGÍA", "Dominio", "CUMPLIMIENTO"}
-KNOWN_DIMENSIONS = {"METODOLOGÍA", "Dominio", "CUMPLIMIENTO", "ESTRATEGIA", "GENERAL"}
+
+# Canonical (uppercase) dimension names → used for case-insensitive matching.
+# "cumplimiento con el curso" maps to the same canonical key as "cumplimiento".
+KNOWN_DIMENSIONS: dict[str, str] = {
+    "metodología": "Metodología",
+    "metodologia": "Metodología",
+    "dominio": "Dominio",
+    "cumplimiento": "Cumplimiento",
+    "cumplimiento con el curso": "Cumplimiento",
+    "estrategia": "Estrategia",
+    "general": "General",
+}
 
 # ── Courses table identification ────────────────────────────────────────
 

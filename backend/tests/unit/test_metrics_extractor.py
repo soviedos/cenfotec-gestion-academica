@@ -10,30 +10,72 @@ from app.modules.evaluacion_docente.application.parsing.extractors.metrics impor
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 HEADER_ROW = [
-    "Dimensiones", "Estudiante", "", "Director", "",
-    "Autoevaluación\n(docente)", "", "Promedio\ngeneral", "",
+    "Dimensiones",
+    "Estudiante",
+    "",
+    "Director",
+    "",
+    "Autoevaluación\n(docente)",
+    "",
+    "Promedio\ngeneral",
+    "",
 ]
 SUBHEADER_ROW = ["", "Puntos", "%", "Puntos", "%", "Puntos", "%", "Puntos", "%"]
 
 METODOLOGIA_ROW = [
-    "METODOLOGÍA", "18.61 / 20.00", "93.05", "10.00 / 10.00", "100.00",
-    "16.00 / 20.00", "80.00", "14.87", "91.02",
+    "METODOLOGÍA",
+    "18.61 / 20.00",
+    "93.05",
+    "10.00 / 10.00",
+    "100.00",
+    "16.00 / 20.00",
+    "80.00",
+    "14.87",
+    "91.02",
 ]
 DOMINIO_ROW = [
-    "Dominio", "19.57 / 20.00", "97.86", "20.00 / 20.00", "100.00",
-    "17.95 / 20.00", "89.75", "19.17", "95.87",
+    "Dominio",
+    "19.57 / 20.00",
+    "97.86",
+    "20.00 / 20.00",
+    "100.00",
+    "17.95 / 20.00",
+    "89.75",
+    "19.17",
+    "95.87",
 ]
 CUMPLIMIENTO_ROW = [
-    "CUMPLIMIENTO", "18.60 / 20.00", "92.98", "40.00 / 40.00", "100.00",
-    "22.00 / 25.00", "88.00", "26.87", "93.66",
+    "CUMPLIMIENTO",
+    "18.60 / 20.00",
+    "92.98",
+    "40.00 / 40.00",
+    "100.00",
+    "22.00 / 25.00",
+    "88.00",
+    "26.87",
+    "93.66",
 ]
 ESTRATEGIA_ROW = [
-    "ESTRATEGIA", "18.94 / 20.00", "94.69", "10.00 / 10.00", "100.00",
-    "17.00 / 20.00", "85.00", "15.31", "93.23",
+    "ESTRATEGIA",
+    "18.94 / 20.00",
+    "94.69",
+    "10.00 / 10.00",
+    "100.00",
+    "17.00 / 20.00",
+    "85.00",
+    "15.31",
+    "93.23",
 ]
 GENERAL_ROW = [
-    "GENERAL", "18.27 / 20.00", "91.36", "20.00 / 20.00", "100.00",
-    "9.00 / 15.00", "60.00", "15.76", "83.79",
+    "GENERAL",
+    "18.27 / 20.00",
+    "91.36",
+    "20.00 / 20.00",
+    "100.00",
+    "9.00 / 15.00",
+    "60.00",
+    "15.76",
+    "83.79",
 ]
 SUMMARY_ROW = ["", "93.99", "", "100.00", "", "81.95", "", "", "91.98"]
 
@@ -77,7 +119,7 @@ class TestExtractMetrics:
         dims, summary = extract_metrics([table])
 
         assert len(dims) == 5
-        assert dims[0].nombre == "METODOLOGÍA"
+        assert dims[0].nombre == "Metodología"
         assert dims[0].estudiante.puntos_obtenidos == pytest.approx(18.61)
         assert dims[0].estudiante.puntos_maximos == pytest.approx(20.0)
         assert dims[0].estudiante.porcentaje == pytest.approx(93.05)
@@ -97,7 +139,7 @@ class TestExtractMetrics:
         table = _make_metrics_table()
         dims, _ = extract_metrics([table])
         names = {d.nombre for d in dims}
-        assert names == {"METODOLOGÍA", "Dominio", "CUMPLIMIENTO", "ESTRATEGIA", "GENERAL"}
+        assert names == {"Metodología", "Dominio", "Cumplimiento", "Estrategia", "General"}
 
     def test_dominio_row(self):
         table = _make_metrics_table()
@@ -109,7 +151,7 @@ class TestExtractMetrics:
     def test_general_low_autoeval(self):
         table = _make_metrics_table()
         dims, _ = extract_metrics([table])
-        general = next(d for d in dims if d.nombre == "GENERAL")
+        general = next(d for d in dims if d.nombre == "General")
         assert general.autoevaluacion.porcentaje == pytest.approx(60.0)
 
     def test_empty_tables(self):
@@ -135,3 +177,21 @@ class TestExtractMetrics:
         ]
         dims, _ = extract_metrics([table])
         assert dims == []
+
+    def test_title_case_dimensions_from_real_pdfs(self):
+        """Real PDFs use title-case names like 'Metodología', 'Cumplimiento con el curso'."""
+        table = [
+            HEADER_ROW,
+            SUBHEADER_ROW,
+            ["Metodología", *METODOLOGIA_ROW[1:]],
+            ["Dominio", *DOMINIO_ROW[1:]],
+            ["Cumplimiento con el curso", *CUMPLIMIENTO_ROW[1:]],
+            ["Estrategia", *ESTRATEGIA_ROW[1:]],
+            ["General", *GENERAL_ROW[1:]],
+            SUMMARY_ROW,
+        ]
+        dims, summary = extract_metrics([table])
+        assert len(dims) == 5
+        names = {d.nombre for d in dims}
+        assert names == {"Metodología", "Dominio", "Cumplimiento", "Estrategia", "General"}
+        assert summary is not None

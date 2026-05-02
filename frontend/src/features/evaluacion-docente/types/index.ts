@@ -14,6 +14,8 @@ export interface Documento {
   error_detalle: string | null;
   content_fingerprint: string | null;
   posible_duplicado: boolean;
+  comentarios_total: number;
+  comentarios_ia: number;
   created_at: string;
   updated_at: string;
 }
@@ -205,7 +207,7 @@ export interface FiltrosCualitativos {
 // =============================================
 
 export interface QueryFilters {
-  modalidad: Modalidad;
+  modalidad?: Modalidad;
   periodo?: string;
   docente?: string;
   asignatura?: string;
